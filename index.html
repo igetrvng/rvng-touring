@@ -473,9 +473,16 @@ const ARTISTS={
   'Visible Cloaks':{color:'#9b6ec4',bg:'#f5f0fb'},
   'Discovery Zone':{color:'#3aaa6d',bg:'#f0faf5'},
   'Frances Chang':{color:'#e8953a',bg:'#fdf6f0'},
+  'David Moore':{color:'#1a6bbf',bg:'#eef4fc'},
 };
-const ARTIST_ORDER=['Lucrecia Dalt','Horse Lords','Visible Cloaks','Discovery Zone','Frances Chang'];
-const aC=a=>(ARTISTS[a]||{}).color||'#888';
+const ARTIST_ORDER=['Lucrecia Dalt','Horse Lords','Visible Cloaks','Discovery Zone','Frances Chang','David Moore'];
+// Auto-generate colors for any artist not in ARTISTS config
+const AUTO_COLORS=['#c0392b','#8e44ad','#16a085','#d35400','#2c3e50','#7f8c8d','#27ae60','#2980b9'];
+let _autoIdx=0;
+const aC=a=>{
+  if(!ARTISTS[a]){ARTISTS[a]={color:AUTO_COLORS[_autoIdx%AUTO_COLORS.length],bg:'#f8f8f8'};_autoIdx++;}
+  return ARTISTS[a].color;
+};
 
 const REGIONS={
   'United Kingdom':'Europe','France':'Europe','Germany':'Europe','Belgium':'Europe',
