@@ -1,0 +1,19 @@
+name: Deploy Dashboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for deploy'
+        required: false
+        default: 'manual update'
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Pages deploy
+        run: echo "Deploying ${{ github.event.inputs.reason || 'push to main' }}"
