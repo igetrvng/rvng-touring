@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RVNG Intl. Touring Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --hdr:#111;--border:#e0e0e0;--bg:#f2f2f2;
+  --white:#fff;--muted:#888;--radius:6px;
+  --col-ld:#e05c4a;--col-hl:#4a8fd4;--col-vc:#9b6ec4;
+  --col-dz:#3aaa6d;--col-fc:#e8953a;
+  --rvng-red:#e31e24;
+}
+body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:13px;background:var(--bg);color:var(--hdr)}
+
+/* ── Header ── */
+.site-hdr{background:var(--hdr);color:#fff;border-bottom:1px solid #222}
+.hdr-top{padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.hbrand{display:flex;align-items:center;gap:14px}
+.hbrand img{height:34px;width:auto;filter:invert(1)}
+.hdiv{width:1px;height:24px;background:#333}
+.hbrand h1{font-size:13px;font-weight:600;letter-spacing:.06em;opacity:.9}
+.hdr-meta{font-size:11px;color:#666;text-align:right}
+.hdr-meta span{display:block}
+#last-updated{color:#888}
+
+.metrics{display:flex;gap:1px;background:#1a1a1a;border-top:1px solid #222}
+.metric{flex:1;padding:11px 16px;background:#161616;text-align:center;border-right:1px solid #1e1e1e}
+.metric:last-child{border-right:none}
+.metric-val{font-size:22px;font-weight:700;color:#fff;line-height:1}
+.metric-lbl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.metric.accent .metric-val{color:#3aaa6d}
+.metric.accent2 .metric-val{color:#e8953a}
+
+/* ── Artist cards ── */
+.cards-strip{background:var(--white);border-bottom:1px solid var(--border);padding:16px 24px;overflow-x:auto}
+.cards-strip h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:12px}
+.cards-row{display:flex;gap:12px;min-width:max-content}
+.acard{width:210px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:#fafafa;flex-shrink:0}
+.acard-hdr{padding:9px 12px;color:#fff;display:flex;align-items:center;gap:8px}
+.acard-hdr strong{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.acard-body{padding:10px 12px;font-size:12px}
+.acard-stat{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0}
+.acard-stat:last-child{border-bottom:none}
+.acard-stat .lbl{color:#999;font-size:11px}
+.acard-stat .val{font-weight:600}
+.acard-next{padding:8px 12px;background:#f7f7f7;border-top:1px solid #eeeeee;font-size:11px;color:#555;line-height:1.5}
+.acard-next .next-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#bbb;margin-bottom:2px}
+
+/* ── Tabs ── */
+.tabs{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 24px}
+.tab{padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--hdr);border-bottom-color:var(--hdr)}
+.tab:hover:not(.active){color:#555}
+
+/* ── Insights ── */
+.insights{background:var(--white);border-bottom:1px solid var(--border)}
+.insights-hdr{padding:10px 24px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.insights-hdr h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999}
+.insights-toggle{font-size:12px;color:#bbb;cursor:pointer}
+.insights-body{display:flex;gap:0;border-top:1px solid #f0f0f0}
+.insights.collapsed .insights-body{display:none}
+.insight-panel{flex:1;padding:16px 24px;border-right:1px solid #f0f0f0}
+.insight-panel:last-child{border-right:none}
+.insight-panel h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#bbb;margin-bottom:10px}
+.snap-item{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #f5f5f5;align-items:flex-start}
+.snap-item:last-child{border-bottom:none}
+.snap-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.snap-text strong{display:block;font-size:12px;font-weight:600;margin-bottom:1px}
+.snap-text span{font-size:11px;color:#777}
+.recent-tabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--border);border-radius:4px;overflow:hidden;width:fit-content}
+.rtab{padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;background:#f5f5f5;color:#888;border:none}
+.rtab.active{background:var(--hdr);color:#fff}
+.recent-list{font-size:11px}
+.recent-row{padding:5px 0;border-bottom:1px solid #f5f5f5;display:flex;gap:8px;align-items:flex-start}
+.recent-row:last-child{border-bottom:none}
+.recent-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.recent-info strong{font-weight:600;display:block}
+.recent-info span{color:#999}
+.recent-date{font-size:10px;color:#bbb;white-space:nowrap;margin-left:auto;padding-left:8px}
+
+/* ── Controls ── */
+.controls{background:var(--white);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.cg{display:flex;flex-direction:column;gap:3px}
+.cg label{font-size:10px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.05em}
+input[type=text],input[type=date],select{border:1px solid #d0d0d0;border-radius:4px;padding:5px 9px;font-size:12px;background:#fff;height:30px;outline:none;color:var(--hdr)}
+input[type=text]:focus,input[type=date]:focus,select:focus{border-color:var(--hdr)}
+input[type=text]{width:180px}
+select{min-width:130px}
+.drange{display:flex;gap:4px;align-items:center}
+.drange span{font-size:11px;color:#ccc}
+.btnrow{display:flex;gap:5px;align-self:flex-end;flex-wrap:wrap}
+button.cb{height:30px;padding:0 12px;border:1px solid #ccc;border-radius:4px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;letter-spacing:.02em}
+button.cb:hover{background:#f0f0f0}
+button.cb.on{background:var(--hdr);color:#fff;border-color:var(--hdr)}
+button.cb.export{background:var(--hdr);color:#fff;border-color:var(--hdr)}
+button.cb.export:hover{background:#2a2a2a}
+
+/* ── Table ── */
+#vt{display:block}
+#vm{display:none}
+.twrap{overflow-x:auto;padding:14px 24px 28px}
+table{width:100%;border-collapse:collapse;background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+thead th{background:var(--hdr);color:#fff;text-align:left;padding:9px 11px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{background:#222}
+thead th.sorted .sa{opacity:1}
+.sa{margin-left:3px;opacity:.3;font-size:9px}
+tbody tr{border-bottom:1px solid #f0f0f0;border-left:3px solid transparent}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#fafafa!important}
+tbody td{padding:8px 11px;vertical-align:top;line-height:1.45}
+td.date{white-space:pre-line;font-variant-numeric:tabular-nums;font-size:12px}
+
+/* Artist row colors */
+tbody tr[data-a="Lucrecia Dalt"]{border-left-color:var(--col-ld)}
+tbody tr[data-a="Horse Lords"]{border-left-color:var(--col-hl)}
+tbody tr[data-a="Visible Cloaks"]{border-left-color:var(--col-vc)}
+tbody tr[data-a="Discovery Zone"]{border-left-color:var(--col-dz)}
+tbody tr[data-a="Frances Chang"]{border-left-color:var(--col-fc)}
+
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0}
+
+/* Status badges */
+.sbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.s-announced{background:#e6f7ef;color:#1a7a4a}
+.s-pending{background:#fff3e6;color:#b86a00}
+.s-confirmed{background:#e8f0fb;color:#1a4a8a}
+.s-hold{background:#f5f0fb;color:#6a1a9a}
+.s-offer{background:#f7f0e6;color:#8a4a00}
+
+/* Row states */
+tr.past{opacity:.38}
+tr.next{background:#fffbf0!important}
+tr.next td.date{font-weight:600}
+
+/* Grouped mode — always hide artist col in grouped, show group headers */
+tr.gh{display:none}
+tr.gh td{padding:9px 11px 7px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;border-left:none!important}
+body.grouped tr.gh{display:table-row}
+body.grouped th:nth-child(2),body.grouped td:nth-child(2){display:none}
+
+/* Compact: hide meta */
+body.compact .cm{display:none}
+/* Hide artist column when single artist filter active (non-grouped) */
+body.artist-filtered th:nth-child(2),body.artist-filtered td:nth-child(2){display:none}
+
+/* Past dates toggle row */
+tr.past-sep td{padding:7px 11px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#bbb;background:#f7f7f7;cursor:pointer;border-top:2px solid #e8e8e8;user-select:none}
+tr.past-sep td:hover{background:#f0f0f0;color:#888}
+tr.past-sep .ps-arrow{font-size:9px;margin-left:4px;transition:transform .15s;display:inline-block}
+tr.past-sep.open .ps-arrow{transform:rotate(90deg)}
+
+/* Dropdown button groups */
+.btn-group{position:relative;display:inline-flex;align-items:center}
+.btn-group>.cb{border-radius:4px 0 0 4px!important}
+.dd-toggle{height:30px;padding:0 7px;border:1px solid #ccc;border-left:1px solid rgba(255,255,255,.25);border-radius:0 4px 4px 0;background:#fff;font-size:10px;cursor:pointer;color:#555}
+.dd-toggle.export{background:var(--hdr);color:#fff;border-color:var(--hdr);border-left-color:rgba(255,255,255,.2)}
+.dd-toggle:hover{background:#f0f0f0}
+.dd-toggle.export:hover{background:#2a2a2a}
+.dd-menu{position:absolute;top:calc(100% + 3px);right:0;background:#fff;border:1px solid #d0d0d0;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,.13);z-index:200;min-width:190px;display:none;overflow:hidden}
+.dd-menu.open{display:block}
+.dd-menu button{display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;font-weight:500;border:none;background:none;cursor:pointer;color:#222;border-bottom:1px solid #f5f5f5}
+.dd-menu button:last-child{border-bottom:none}
+.dd-menu button:hover{background:#f5f7ff;color:#111}
+.dd-sep{height:1px;background:#eee;margin:3px 0}
+
+/* Store confirmed star in Stores tab */
+.sstore-star{color:#3a8a30;font-size:10px;font-weight:800;margin-right:3px;cursor:help}
+
+.nores{text-align:center;padding:48px;color:var(--muted);font-size:14px;background:var(--white);border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.07)}
+mark.hl{background:#fff3cd;border-radius:2px}
+
+/* ── Map ── */
+#mc{position:relative}
+#map{height:calc(100vh - 182px);min-height:420px}
+
+#mleg{position:absolute;bottom:20px;left:20px;background:rgba(255,255,255,.97);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.12);min-width:165px}
+#mleg h3{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px}
+.li{display:flex;align-items:center;gap:8px;padding:3px 0}
+.li label{font-size:12px;cursor:pointer;user-select:none}
+.lsw{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.li input[type=checkbox]{cursor:pointer}
+.lroutes{margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0}
+.lroutes label{font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px}
+
+/* Map artist info panel */
+#map-info{position:absolute;bottom:20px;right:20px;background:rgba(255,255,255,.97);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.12);min-width:200px;display:none}
+.mi-name{font-size:13px;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0f0f0}
+.mi-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}
+.mi-row .ml{color:#999}
+.mi-row .mv{font-weight:600}
+
+/* ── Horse Lords retail panel (table inline) ── */
+tr.hl-tour-row{cursor:pointer}
+tr.hl-tour-row:hover td:first-child::after{content:' ▾';font-size:9px;color:var(--col-hl);opacity:.6}
+tr.hl-retail-row{display:none}
+tr.hl-retail-row.open{display:table-row}
+tr.hl-retail-row td{padding:0!important;border:none!important;border-left:3px solid var(--col-hl)!important}
+tr.hl-tour-row.retail-expanded{background:#f7faff!important}
+.hl-retail-panel{background:#f7faff;padding:9px 16px 10px;border-bottom:1px solid #dde7f5}
+.rp-header{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#4a8fd4;margin-bottom:7px}
+.rp-city-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aac0df;margin-bottom:4px}
+.rp-section{margin-bottom:7px}
+.rp-section:last-child{margin-bottom:0}
+.rp-stores{display:flex;flex-wrap:wrap;gap:4px}
+.rp-store{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:3px;background:#fff;border:1px solid #d4e3f5;font-size:11px;white-space:nowrap}
+.rp-store.art-confirmed{background:#eaf3e8;border-color:#7abf70}
+.rp-store-name{font-weight:500;color:#444}
+.rp-store.art-confirmed .rp-store-name{color:#1a5a14;font-weight:600}
+.rp-art-badge{font-size:9px;font-weight:800;color:#3a8a30}
+.rp-store a{font-size:10px;color:#888;text-decoration:none;opacity:.7;padding-left:1px}
+.rp-store a:hover{opacity:1;color:#333}
+
+/* ── Artist detail view ── */
+#va{display:none;min-height:100vh;background:var(--bg)}
+.av-topbar{padding:12px 24px;display:flex;align-items:center;gap:16px;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.av-back{height:28px;padding:0 12px;border:1px solid #ccc;border-radius:4px;background:#fff;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.03em}
+.av-back:hover{background:#f0f0f0}
+.av-artist-name{font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.av-meta{font-size:11px;color:#999;margin-left:auto}
+.av-body{padding:20px 24px 48px;max-width:1100px}
+.av-section-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#bbb;margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.av-date-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
+.av-date-card.past-c{opacity:.45}
+.av-date-card.next-c{border-color:#e8c84a;box-shadow:0 0 0 2px #fffbe6}
+.av-date-hdr{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
+.av-date-d{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);min-width:90px;white-space:nowrap}
+.av-date-v{font-weight:700;font-size:13px;flex:1}
+.av-date-loc{font-size:12px;color:#888}
+.av-date-status{margin-left:auto}
+.av-retail-block{border-top:1px solid #f0f0f0;background:#f9fbf9;padding:10px 14px}
+.av-retail-none{font-size:11px;color:#bbb;font-style:italic}
+.av-intl-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:12px;align-items:baseline}
+.av-intl-row:last-child{border-bottom:none}
+.av-intl-date{color:#aaa;font-variant-numeric:tabular-nums;min-width:90px;white-space:nowrap}
+.av-intl-venue{font-weight:600;flex:1}
+.av-intl-loc{color:#999;font-size:11px}
+.acard{cursor:pointer;transition:box-shadow .15s,transform .1s,border-color .15s}
+.acard:hover{box-shadow:0 4px 16px rgba(0,0,0,.12);transform:translateY(-1px);border-color:var(--rvng-red)}
+.acard:hover .acard-hdr{background:var(--rvng-red)!important}
+tr.gh:hover td{background:var(--rvng-red)!important}
+.sgroup-hdr:hover strong{color:var(--rvng-red)}
+tbody tr:not(.gh):hover td[data-col="state"]{color:var(--rvng-red);font-weight:600}
+
+/* ── Print ── */
+@media print{
+  .site-hdr{background:#fff!important;color:#000!important;border-bottom:2px solid #000}
+  .site-hdr img{filter:none!important}
+  .hbrand h1,.hdr-meta,#last-updated,.metrics .metric-val{color:#000!important;opacity:1!important}
+  .metrics .metric-lbl{color:#666!important}
+  .tabs,.controls,.cards-strip,.insights,#vm{display:none!important}
+  #vt{display:block!important}
+  .twrap{padding:0}
+  table{box-shadow:none}
+  tr.past{opacity:1}
+  body.compact .cm{display:table-cell}
+}
+
+a.vlink{color:inherit;text-decoration:underline;text-decoration-color:#ccc;text-underline-offset:2px}
+a.vlink:hover{text-decoration-color:currentColor}
+
+#vs{display:none;padding:16px 24px 32px}
+.stores-summary{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.stores-summary strong{font-size:16px}
+.stores-summary .sub{color:var(--muted);font-size:12px}
+.sgroup{margin-bottom:20px}
+.sgroup-hdr{display:flex;align-items:center;gap:8px;padding:8px 0 6px;border-bottom:2px solid var(--border);margin-bottom:8px}
+.sgroup-hdr strong{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.sdate-row{border:1px solid var(--border);border-radius:var(--radius);background:var(--white);margin-bottom:6px;overflow:hidden}
+.sdate-hdr{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;user-select:none}
+.sdate-hdr:hover{background:#fafafa}
+.sdate-info{flex:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sdate-date{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;min-width:80px}
+.sdate-venue{font-weight:600;font-size:13px}
+.sdate-city{font-size:12px;color:var(--muted)}
+.store-count{background:#f0f0f0;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;color:#888;white-space:nowrap;flex-shrink:0}
+.store-count.has{background:#e8f0fb;color:#1a4a8a}
+.sdate-chevron{font-size:10px;color:#bbb;transition:transform .15s;flex-shrink:0}
+.sdate-row.open .sdate-chevron{transform:rotate(90deg)}
+.sstore-list{display:none;padding:0 14px 10px;border-top:1px solid #f5f5f5}
+.sdate-row.open .sstore-list{display:block}
+.sstore-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f8f8f8;font-size:12px}
+.sstore-item:last-child{border-bottom:none}
+.sstore-name{flex:1;font-weight:500}
+.sstore-links{display:flex;gap:5px;flex-shrink:0}
+.sstore-links a{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;text-decoration:none;white-space:nowrap}
+.sl-web{background:#f0f0f0;color:#333}.sl-web:hover{background:#e0e0e0}
+.sl-rsd{background:#e8f0fb;color:#1a4a8a}.sl-rsd:hover{background:#d0e0f7}
+.sno-match{padding:8px 0;font-size:12px;color:#bbb;font-style:italic}
+.sdate-row.past-date{opacity:.4}
+.lsep{margin:10px 0 8px;border-top:1px solid #f0f0f0;padding-top:8px}
+.lsep h4{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#999;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<header class="site-hdr">
+  <div class="hdr-top">
+    <div class="hbrand">
+      <svg height="34" viewBox="0 0 161 200" xmlns="http://www.w3.org/2000/svg" style="fill:#fff;flex-shrink:0"><path d="M0,0v83.61c0.04,16.44,0.53,30.14,6.26,44.2c5.5,13.54,14.85,25.42,26.96,35.34l47.76,37.01L128.79,163c12.1-9.93,21.45-21.81,26.95-35.35c5.73-14.06,6.22-27.76,6.26-44.2V0H0z M143.27,125.31c-4.98,12.23-13.52,23.12-24.68,31.57l-37.61,29.14l-37.6-29.15C32.22,148.43,23.69,137.54,18.71,125.3C13.49,112.54,13.1,99.71,13.08,84.27L13.06,13.02h134.89l-0.02,71.25C147.91,99.71,147.51,112.54,143.27,125.31z"/><path d="M80.5,23.77c-4.12,0-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46s7.46-3.34,7.46-7.46S84.62,23.77,80.5,23.77z"/><path d="M108.51,55.06c0-4.12-3.34-7.46-7.46-7.46s-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46S108.51,59.18,108.51,55.06z"/><path d="M60.41,47.6c-4.12,0-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46s7.46-3.34,7.46-7.46S64.53,47.6,60.41,47.6z"/><path d="M80.5,71.43c-4.12,0-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46s7.46-3.34,7.46-7.46S84.62,71.43,80.5,71.43z"/><path d="M108.51,102.72c0-4.12-3.34-7.46-7.46-7.46s-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46S108.51,106.84,108.51,102.72z"/><path d="M60.41,95.26c-4.12,0-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46s7.46-3.34,7.46-7.46S64.53,95.26,60.41,95.26z"/><path d="M80.5,119.09c-4.12,0-7.46,3.34-7.46,7.46s3.34,7.46,7.46,7.46s7.46-3.34,7.46-7.46S84.62,119.09,80.5,119.09z"/></svg>
+      <div class="hdiv"></div>
+      <h1>RVNG Intl. Touring Dashboard</h1>
+    </div>
+    <div class="hdr-meta">
+      <span>Internal &amp; Partner Use</span>
+      <span id="last-updated">Loading…</span>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" id="m-artists">—</div><div class="metric-lbl">Active Artists</div></div>
+    <div class="metric"><div class="metric-val" id="m-total">—</div><div class="metric-lbl">Total Dates</div></div>
+    <div class="metric accent"><div class="metric-val" id="m-ann">—</div><div class="metric-lbl">Announced</div></div>
+    <div class="metric accent2"><div class="metric-val" id="m-pend">—</div><div class="metric-lbl">Pending</div></div>
+    <div class="metric"><div class="metric-val" id="m-ctr">—</div><div class="metric-lbl">Countries</div></div>
+  </div>
+</header>
+
+<div class="cards-strip">
+  <h2>Artist Overview</h2>
+  <div class="cards-row" id="artist-cards"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('table')">Table</button>
+  <button class="tab" onclick="switchTab('map')">Map</button>
+  <button class="tab" onclick="switchTab('stores')">Stores</button>
+</div>
+
+<div class="insights" id="insights">
+  <div class="insights-hdr" onclick="toggleInsights()">
+    <h2>Touring Snapshot &amp; Recent Activity</h2>
+    <span class="insights-toggle" id="ins-arrow">▲</span>
+  </div>
+  <div class="insights-body">
+    <div class="insight-panel">
+      <h3>Touring Snapshot</h3>
+      <div id="snap-list"></div>
+    </div>
+    <div class="insight-panel">
+      <h3>Recent Activity</h3>
+      <div class="recent-tabs">
+        <button class="rtab active" onclick="showRecent('added',this)">Recently Added</button>
+        <button class="rtab" onclick="showRecent('modified',this)">Recently Modified</button>
+      </div>
+      <div id="recent-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="cg"><label>Search</label><input type="text" id="search" placeholder="Artist, venue, city…"></div>
+  <div class="cg"><label>Artist</label><select id="fa"><option value="">All Artists</option></select></div>
+  <div class="cg"><label>Country</label><select id="fc"><option value="">All Countries</option></select></div>
+  <div class="cg"><label>State</label><select id="fs"><option value="">All States</option></select></div>
+  <div class="cg"><label>Status</label>
+    <select id="fst">
+      <option value="">All Statuses</option>
+      <option value="Announced">Announced</option>
+      <option value="Pending">Pending</option>
+      <option value="Confirmed">Confirmed</option>
+      <option value="Hold">Hold</option>
+      <option value="Offer">Offer</option>
+    </select>
+  </div>
+  <div class="cg"><label>Date Range</label>
+    <div class="drange"><input type="date" id="df"><span>–</span><input type="date" id="dt"></div>
+  </div>
+  <div class="btnrow">
+    <button class="cb" id="bc" onclick="toggleCompact()">Compact</button>
+    <!-- Export All dropdown -->
+    <div class="btn-group">
+      <button class="cb export" onclick="exportCSV()">Export All</button>
+      <button class="dd-toggle export" onclick="toggleDD('dd-export',event)">▾</button>
+      <div class="dd-menu" id="dd-export">
+        <button onclick="exportCSV();closeDD('dd-export')">CSV — All tour dates</button>
+        <button onclick="exportArtistPDF(document.getElementById('fa').value||ARTIST_ORDER[0],'full');closeDD('dd-export')">PDF — Artist full overview</button>
+        <button onclick="exportArtistPDF(document.getElementById('fa').value||ARTIST_ORDER[0],'retail');closeDD('dd-export')">PDF — Retail locations only</button>
+      </div>
+    </div>
+    <!-- Artist PDF dropdown -->
+    <div class="btn-group">
+      <button class="cb export" onclick="exportArtistPDF(document.getElementById('fa').value||null,'full')">Artist PDF</button>
+      <button class="dd-toggle export" onclick="toggleDD('dd-pdf',event)">▾</button>
+      <div class="dd-menu" id="dd-pdf">
+        <button onclick="exportArtistPDF(document.getElementById('fa').value||null,'full');closeDD('dd-pdf')">Full overview (dates + retail)</button>
+        <button onclick="exportArtistPDF(document.getElementById('fa').value||null,'retail');closeDD('dd-pdf')">Retail locations only</button>
+      </div>
+    </div>
+    <button class="cb" onclick="resetFilters()">Reset</button>
+    <span id="rc-label" style="align-self:center;font-size:11px;color:#999;padding-left:4px"></span>
+  </div>
+</div>
+
+<div id="vt">
+  <div class="twrap">
+    <table id="tt">
+      <thead><tr>
+        <th onclick="sortBy('date')" data-col="date">Date<span class="sa">↕</span></th>
+        <th onclick="sortBy('artist')" data-col="artist">Artist<span class="sa">↕</span></th>
+        <th onclick="sortBy('country')" data-col="country">Country<span class="sa">↕</span></th>
+        <th onclick="sortBy('state')" data-col="state">State<span class="sa">↕</span></th>
+        <th onclick="sortBy('city')" data-col="city">City<span class="sa">↕</span></th>
+        <th onclick="sortBy('venue')" data-col="venue">Venue<span class="sa">↕</span></th>
+        <th onclick="sortBy('status')" data-col="status">Status<span class="sa">↕</span></th>
+        <th>Add. Artist</th>
+        <th>Notes</th>
+        <th class="cm" onclick="sortBy('dateCreated')" data-col="dateCreated">Created<span class="sa">↕</span></th>
+        <th class="cm" onclick="sortBy('dateModified')" data-col="dateModified">Modified<span class="sa">↕</span></th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+    <div id="nr" class="nores" style="display:none">No matching tour dates found.</div>
+  </div>
+</div>
+
+<div id="vm">
+  <div id="mc">
+    <div id="map"></div>
+    <div id="mleg">
+      <h3>Artists</h3>
+      <div id="la"></div>
+      <div class="lsep">
+        <h4>Layers</h4>
+        <div class="li"><input type="checkbox" id="show-stores" onchange="toggleStoreMarkers()">
+          <span class="lsw" style="background:#444;border-radius:2px"></span>
+          <label for="show-stores">RSD Stores</label></div>
+      </div>
+      <div class="lroutes">
+        <label><input type="checkbox" id="tr" checked onchange="toggleRoutes()"> Show routes</label>
+      </div>
+    </div>
+    <div id="map-info"></div>
+  </div>
+</div>
+
+<div id="vs">
+  <div class="stores-summary">
+    <div>
+      <strong id="ss-matched">—</strong> tour cities globally matched with
+      <strong id="ss-total">—</strong> RSD partner stores
+    </div>
+    <span class="sub">Filter by artist or date range above</span>
+  </div>
+  <div id="stores-body"></div>
+</div>
+
+<div id="loading" style="display:none;position:fixed;inset:0;background:rgba(10,10,10,.85);z-index:9999;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;flex-direction:column;gap:1rem">
+  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation:spin 1s linear infinite"><circle cx="20" cy="20" r="16" stroke="rgba(255,255,255,.2)" stroke-width="4"/><path d="M20 4a16 16 0 0 1 16 16" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>
+  <span style="font-size:.95rem;letter-spacing:.05em;opacity:.85">Loading tour data…</span>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div id="va"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const TOUR_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHmXEznWMPY6BQPKUpiTotKGmfKhn488O5Sn19WRGMYpECR2TjgwyLv0lzEFaHAw/pub?gid=1652268007&single=true&output=csv';
+const VENUE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHmXEznWMPY6BQPKUpiTotKGmfKhn488O5Sn19WRGMYpECR2TjgwyLv0lzEFaHAw/pub?gid=1887170134&single=true&output=csv';
+
+const ARTISTS={
+  'Lucrecia Dalt':{color:'#e05c4a',bg:'#fdf1f0'},
+  'Horse Lords':{color:'#4a8fd4',bg:'#f0f5fd'},
+  'Visible Cloaks':{color:'#9b6ec4',bg:'#f5f0fb'},
+  'Discovery Zone':{color:'#3aaa6d',bg:'#f0faf5'},
+  'Frances Chang':{color:'#e8953a',bg:'#fdf6f0'},
+};
+const ARTIST_ORDER=['Lucrecia Dalt','Horse Lords','Visible Cloaks','Discovery Zone','Frances Chang'];
+const aC=a=>(ARTISTS[a]||{}).color||'#888';
+
+const REGIONS={
+  'United Kingdom':'Europe','France':'Europe','Germany':'Europe','Belgium':'Europe',
+  'Netherlands':'Europe','Denmark':'Europe','Sweden':'Europe','Norway':'Europe',
+  'Poland':'Europe','Czech Republic':'Europe','Switzerland':'Europe','Italy':'Europe',
+  'Spain':'Europe','Portugal':'Europe',
+  'United States':'North America','Canada':'North America',
+  'Australia':'Oceania','New Zealand':'Oceania','Japan':'Asia',
+};
+
+const STATUS_CFG={
+  'Announced':{cls:'s-announced',label:'Announced'},
+  'Pending':{cls:'s-pending',label:'Pending'},
+  'Confirmed':{cls:'s-confirmed',label:'Confirmed'},
+  'Hold':{cls:'s-hold',label:'Hold'},
+  'Offer':{cls:'s-offer',label:'Offer'},
+};
+
+const GEO={
+  'London|United Kingdom':[51.5074,-0.1278],'Bristol|United Kingdom':[51.4545,-2.5879],
+  'Manchester|United Kingdom':[53.4808,-2.2426],'Glasgow|United Kingdom':[55.8642,-4.2518],
+  'Brighton|United Kingdom':[50.8225,-0.1372],'Lille|France':[50.6292,3.0573],
+  'Paris|France':[48.8566,2.3522],'Ghent|Belgium':[51.0543,3.7174],
+  'Brussels|Belgium':[50.8503,4.3517],'Cologne|Germany':[50.9333,6.95],
+  'Berlin|Germany':[52.52,13.405],'Leipzig|Germany':[51.3397,12.3731],
+  'Villingen-Schwenningen|Germany':[48.0603,8.4597],'Hamburg|Germany':[53.5511,9.9937],
+  'Haldern|Germany':[51.7464,6.3989],'Essen|Germany':[51.4556,7.0116],
+  'Düsseldorf|Germany':[51.2217,6.7762],'Amsterdam|Netherlands':[52.3676,4.9041],
+  'Copenhagen|Denmark':[55.6761,12.5683],'Aarhus|Denmark':[56.1629,10.2039],
+  'Malmo|Sweden':[55.605,13.0038],'Stockholm|Sweden':[59.3293,18.0686],
+  'Prague|Czech Republic':[50.0755,14.4378],'Tasov|Czech Republic':[49.3167,16.0833],
+  'Bern|Switzerland':[46.9481,7.4474],'Ascona|Switzerland':[46.1547,8.7742],
+  'Geneva|Switzerland':[46.2044,6.1432],'Milan|Italy':[45.4654,9.1859],
+  'Rome|Italy':[41.9028,12.4964],'Bologna|Italy':[44.4949,11.3426],
+  'Turin|Italy':[45.0703,7.6869],'Precenicco|Italy':[45.85,13.2167],
+  'Florence|Italy':[43.7696,11.2558],'Barcelona|Spain':[41.3851,2.1734],
+  'Madrid|Spain':[40.4168,-3.7038],'Lisbon|Portugal':[38.7223,-9.1393],
+  'Braga|Portugal':[41.5454,-8.4265],'Rollag|Norway':[59.9833,9.0167],
+  'Oslo|Norway':[59.9139,10.7522],'Warsaw|Poland':[52.2297,21.0122],
+  'Winnipeg|Canada':[49.8951,-97.1384],'Guelph|Canada':[43.5448,-80.2482],
+  'Toronto|Canada':[43.6532,-79.3832],'Montreal|Canada':[45.5017,-73.5673],
+  'Minneapolis|Minnesota|United States':[44.9778,-93.265],
+  'Madison|Wisconsin|United States':[43.0731,-89.4012],
+  'Rock Island|Illinois|United States':[41.5095,-90.5851],
+  'Yellow Springs|Ohio|United States':[39.8034,-83.8874],
+  'State College|Pennsylvania|United States':[40.7934,-77.86],
+  'Buffalo|New York|United States':[42.8864,-78.8784],
+  'Chatham|New York|United States':[42.3612,-73.5982],
+  'Los Angeles|California|United States':[34.0522,-118.2437],
+  'San Francisco|California|United States':[37.7749,-122.4194],
+  'Cincinnati|Ohio|United States':[39.1031,-84.512],
+  'St Louis|Missouri|United States':[38.627,-90.1994],
+  'Columbia|Missouri|United States':[38.9517,-92.3341],
+  'Urbana|Illinois|United States':[40.1106,-88.2073],
+  'Chicago|Illinois|United States':[41.8781,-87.6298],
+  'Detroit|Michigan|United States':[42.3314,-83.0458],
+  'Portland|Maine|United States':[43.6591,-70.2568],
+  'Boston|Massachusetts|United States':[42.3601,-71.0589],
+  'Northampton|Massachusetts|United States':[42.3251,-72.6412],
+  'Brooklyn|New York|United States':[40.6782,-73.9442],
+  'Philadelphia|Pennsylvania|United States':[39.9526,-75.1652],
+  'Baltimore|Maryland|United States':[39.2904,-76.6122],
+  'Carrboro|North Carolina|United States':[35.9107,-79.075],
+  'Asheville|North Carolina|United States':[35.5951,-82.5515],
+  'Atlanta|Georgia|United States':[33.749,-84.388],
+  'Omaha|Nebraska|United States':[41.2565,-95.9345],
+  'New York|New York|United States':[40.7128,-74.006],
+  'Santa Fe|New Mexico|United States':[35.687,-105.9378],
+  'Florence|Colorado|United States':[38.3831,-105.1172],
+  'Denver|Colorado|United States':[39.7392,-104.9903],
+  'Boise|Idaho|United States':[43.615,-116.2023],
+  'Melbourne|Australia':[-37.8136,144.9631],
+  'Wellington|New Zealand':[-41.2865,174.7762],
+  'Tokyo|Japan':[35.6762,139.6503],
+};
+
+function geoCoords(r){
+  return GEO[r.city+'|'+r.state+'|'+r.country]||GEO[r.city+'|'+r.country]||null;
+}
+
+// ── Parse ────────────────────────────────────────────────────────────────────
+// Proper RFC 4180 CSV parser (handles quoted fields, embedded newlines)
+function parseCSVText(text){
+  const rows=[]; let i=0, len=text.length;
+  while(i<len){
+    const row=[]; let eol=false;
+    while(!eol){
+      let field='';
+      if(i<len && text[i]==='"'){
+        i++;
+        while(i<len){
+          if(text[i]==='"'){
+            i++;
+            if(i<len && text[i]==='"'){field+='"';i++;}
+            else break;
+          } else { field+=text[i++]; }
+        }
+      } else {
+        while(i<len && text[i]!==',' && text[i]!=='\r' && text[i]!=='\n') field+=text[i++];
+      }
+      row.push(field);
+      if(i>=len || text[i]==='\r' || text[i]==='\n'){
+        if(i<len && text[i]==='\r') i++;
+        if(i<len && text[i]==='\n') i++;
+        eol=true;
+      } else { i++; } // skip comma
+    }
+    if(row.some(f=>f!=='')) rows.push(row);
+  }
+  return rows;
+}
+
+// Sheet column order: Label(0) Artist(1) Date(2) Country(3) State(4) City(5) Venue(6) Announced(7) AdditionalArtist(8) Notes(9) DateCreated(10) DateModified(11)
+function parseRows(csvRows){
+  const rows=[],seen=new Set();
+  for(const c of csvRows){
+    if(!c[0]||c[0]==='Label') continue; // skip header/empty
+    const dateRaw=(c[2]||'').replace(/ \/ /g,'\n').trim();
+    const announced=(c[7]||'').trim();
+    const o={
+      label:(c[0]||'').trim(),
+      artist:(c[1]||'').trim(),
+      date:dateRaw,
+      country:(c[3]||'').trim(),
+      state:(c[4]||'').trim(),
+      city:(c[5]||'').trim(),
+      venue:(c[6]||'').trim(),
+      announced,
+      status:announced==='\u2705'?'Announced':'Pending',
+      additionalArtist:(c[8]||'').trim(),
+      notes:(c[9]||'').trim(),
+      dateCreated:(c[10]||'').trim(),
+      dateModified:(c[11]||'').trim(),
+    };
+    const k=[o.date,o.artist,o.city,o.venue].join('|');
+    if(seen.has(k))continue;
+    seen.add(k);rows.push(o);
+  }
+  return rows;
+}
+
+function pdate(s){
+  if(!s)return null;
+  const f=s.split('\n')[0].split('|')[0].trim();
+  const m=f.match(/(\d{2})[-\/](\d{2})[-\/](\d{4})/);
+  return m?new Date(m[3]+'-'+m[2]+'-'+m[1]):null;
+}
+
+function fmtDate(d){
+  if(!d)return '';
+  return String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getFullYear()).slice(2);
+}
+function displayDate(s){
+  // DD-MM-YYYY → MM/DD/YY, preserves multi-day line breaks
+  return s.replace(/(\d{2})-(\d{2})-(\d{4})/g,(_,dd,mm,yyyy)=>`${mm}/${dd}/${yyyy.slice(2)}`);
+}
+
+function isFestival(r){
+  return /festival|festiv|fest\b/i.test(r.venue+' '+r.notes);
+}
+
+let VENUE_URLS={};
+
+function venueHtml(venue,city,q){
+  const url=VENUE_URLS[venue+'|'+city];
+  const txt=hl(venue,q);
+  if(!url)return txt;
+  return '<a class="vlink" href="'+url+'" target="_blank" rel="noopener">'+txt+'</a>';
+}
+
+function venueLinkRaw(venue,city){
+  const url=VENUE_URLS[venue+'|'+city];
+  if(!url)return esc(venue);
+  return '<a href="'+url+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:#ccc;text-underline-offset:2px">'+esc(venue)+'</a>';
+}
+
+let ALL=[];
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+let sortCol='date',sortDir=1,tab='table',showRoutes=true;
+let lmap=null,markers=[],mapRoutes={};
+let recentMode='added';
+
+// ── Header metrics & Last Updated ─────────────────────────────────────────────
+function initHeaderStats(){
+  const artists=new Set(ALL.map(r=>r.artist));
+  const ctrs=new Set(ALL.map(r=>r.country).filter(Boolean));
+  const ann=ALL.filter(r=>r.status==='Announced').length;
+  const pend=ALL.filter(r=>r.status==='Pending').length;
+  document.getElementById('m-artists').textContent=artists.size;
+  document.getElementById('m-total').textContent=ALL.length;
+  document.getElementById('m-ann').textContent=ann;
+  document.getElementById('m-pend').textContent=pend;
+  document.getElementById('m-ctr').textContent=ctrs.size;
+
+  let maxMod=null;
+  for(const r of ALL){
+    const d=pdate(r.dateModified);
+    if(d&&(!maxMod||d>maxMod))maxMod=d;
+  }
+  document.getElementById('last-updated').textContent='Last Updated: '+fmtDate(maxMod);
+}
+
+// ── Artist cards ──────────────────────────────────────────────────────────────
+function renderArtistCards(){
+  const container=document.getElementById('artist-cards');
+  const html=ARTIST_ORDER.map(artist=>{
+    const rows=ALL.filter(r=>r.artist===artist);
+    if(!rows.length)return '';
+    const color=aC(artist);
+    const ctrs=[...new Set(rows.map(r=>r.country).filter(Boolean))];
+    const ann=rows.filter(r=>r.status==='Announced').length;
+    const pend=rows.filter(r=>r.status==='Pending').length;
+    const fests=rows.filter(isFestival).length;
+    const upcoming=rows.filter(r=>{ const d=pdate(r.date); return d&&d>=TODAY; })
+      .sort((a,b)=>(pdate(a.date)||0)-(pdate(b.date)||0))[0];
+    const nextStr=upcoming
+      ? fmtDate(pdate(upcoming.date))+'<br>'+venueLinkRaw(upcoming.venue,upcoming.city)+', '+esc(upcoming.city)
+      : '<em style="color:#bbb">Tour complete</em>';
+    return `<div class="acard" onclick="openArtistView('${artist.replace(/'/g,"\\'")}')" title="Click to view ${esc(artist)} dates & retail">
+      <div class="acard-hdr" style="background:${color}">
+        <span class="dot" style="background:rgba(255,255,255,.5)"></span>
+        <strong>${esc(artist)}</strong>
+        <span style="margin-left:auto;font-size:10px;opacity:.7">View →</span>
+      </div>
+      <div class="acard-body">
+        <div class="acard-stat"><span class="lbl">Total dates</span><span class="val">${rows.length}</span></div>
+        <div class="acard-stat"><span class="lbl">Countries</span><span class="val">${ctrs.length}</span></div>
+        <div class="acard-stat"><span class="lbl">Announced</span><span class="val" style="color:#1a7a4a">${ann}</span></div>
+        <div class="acard-stat"><span class="lbl">Pending</span><span class="val" style="color:#b86a00">${pend}</span></div>
+        ${fests?`<div class="acard-stat"><span class="lbl">Festivals</span><span class="val">${fests}</span></div>`:''}
+      </div>
+      <div class="acard-next"><div class="next-lbl">Next show</div>${nextStr}</div>
+    </div>`;
+  }).join('');
+  container.innerHTML=html;
+}
+
+// ── Touring Snapshot ──────────────────────────────────────────────────────────
+function renderSnapshot(){
+  const container=document.getElementById('snap-list');
+  const html=ARTIST_ORDER.map(artist=>{
+    const rows=ALL.filter(r=>r.artist===artist);
+    if(!rows.length)return '';
+    const color=aC(artist);
+    const n=rows.length;
+    const regions=[...new Set(rows.map(r=>REGIONS[r.country]||r.country))];
+    const fests=rows.filter(isFestival).length;
+    const supportArtists=[...new Set(rows.map(r=>r.additionalArtist).filter(Boolean))];
+    let desc=n+'-date '+regions.join(' & ')+' '+(n===1?'show':'run');
+    const extras=[];
+    if(fests)extras.push(fests+' festival'+(fests>1?'s':''));
+    if(supportArtists.length)extras.push('w/ '+supportArtists.join(', '));
+    if(extras.length)desc+=' — '+extras.join(', ');
+    return `<div class="snap-item">
+      <span class="snap-dot" style="background:${color}"></span>
+      <div class="snap-text"><strong>${esc(artist)}</strong><span>${esc(desc)}</span></div>
+    </div>`;
+  }).join('');
+  container.innerHTML=html;
+}
+
+// ── Recent Activity ───────────────────────────────────────────────────────────
+function renderRecent(mode){
+  recentMode=mode;
+  const field=mode==='added'?'dateCreated':'dateModified';
+  const sorted=[...ALL]
+    .filter(r=>r[field])
+    .sort((a,b)=>(pdate(b[field])||0)-(pdate(a[field])||0))
+    .slice(0,7);
+  const html=sorted.map(r=>{
+    const color=aC(r.artist);
+    const loc=[r.city,r.country].filter(Boolean).join(', ');
+    return `<div class="recent-row">
+      <span class="recent-dot" style="background:${color}"></span>
+      <div class="recent-info">
+        <strong>${esc(r.artist)} — ${esc(r.city)}, ${esc(r.country)}</strong>
+        <span>${esc(r.venue)}</span>
+      </div>
+      <span class="recent-date">${esc(r[field])}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('recent-list').innerHTML=html||'<span style="color:#bbb;font-size:11px">No data</span>';
+}
+
+function showRecent(mode,btn){
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRecent(mode);
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function populateFilters(){
+  const arts=ARTIST_ORDER.filter(a=>ALL.some(r=>r.artist===a));
+  const ctrs=[...new Set(ALL.map(r=>r.country).filter(Boolean))].sort();
+  const sts=[...new Set(ALL.map(r=>r.state).filter(Boolean))].sort();
+  fill('fa',arts,'All Artists');
+  fill('fc',ctrs,'All Countries');
+  fill('fs',sts,'All States');
+}
+
+function fill(id,vals,ph){
+  const s=document.getElementById(id),cur=s.value;
+  s.innerHTML='<option value="">'+ph+'</option>';
+  vals.forEach(v=>{const o=document.createElement('option');o.value=o.textContent=v;if(v===cur)o.selected=true;s.appendChild(o);});
+}
+
+function gf(){
+  return{
+    q:document.getElementById('search').value.trim().toLowerCase(),
+    a:document.getElementById('fa').value,
+    c:document.getElementById('fc').value,
+    s:document.getElementById('fs').value,
+    st:document.getElementById('fst').value,
+    df:document.getElementById('df').value,
+    dt:document.getElementById('dt').value,
+  };
+}
+
+function filtered(){
+  const f=gf();
+  let rows=ALL.filter(r=>{
+    if(f.a&&r.artist!==f.a)return false;
+    if(f.c&&r.country!==f.c)return false;
+    if(f.s&&r.state!==f.s)return false;
+    if(f.st&&r.status!==f.st)return false;
+    if(f.df||f.dt){const d=pdate(r.date);if(!d)return false;
+      if(f.df&&d<new Date(f.df))return false;
+      if(f.dt&&d>new Date(f.dt))return false;}
+    if(f.q){
+      const h=[r.artist,r.city,r.venue,r.country,r.state,r.notes,r.additionalArtist].join(' ').toLowerCase();
+      if(!h.includes(f.q))return false;
+    }
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let va,vb;
+    if(['date','dateCreated','dateModified'].includes(sortCol)){
+      va=pdate(a[sortCol])?.getTime()??0;vb=pdate(b[sortCol])?.getTime()??0;
+    }else{va=(a[sortCol]||'').toLowerCase();vb=(b[sortCol]||'').toLowerCase();}
+    return va<vb?-sortDir:va>vb?sortDir:0;
+  });
+  return{rows,q:f.q};
+}
+
+function apply(){
+  const{rows,q}=filtered();
+  const lbl=rows.length+' date'+(rows.length!==1?'s':'');
+  document.getElementById('rc-label').textContent=rows.length<ALL.length?lbl+' shown':'';
+  document.body.classList.toggle('artist-filtered',!!document.getElementById('fa').value);
+  if(tab==='table')renderTable(rows,q);
+  else if(tab==='map'){renderMap(rows);renderMapInfo(rows);if(showStoreMarkers)drawStoreMarkers();}
+  else if(tab==='stores')renderStores(rows);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hl(t,q){
+  if(!q||!t)return esc(t);
+  return esc(t).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>'<mark class="hl">'+m+'</mark>');
+}
+function statusBadge(s){
+  const cfg=STATUS_CFG[s]||STATUS_CFG['Pending'];
+  return '<span class="sbadge '+cfg.cls+'">'+cfg.label+'</span>';
+}
+
+// ── Table render ──────────────────────────────────────────────────────────────
+function renderTable(rows,q){
+  const tb=document.getElementById('tb'),nr=document.getElementById('nr');
+  if(!rows.length){tb.innerHTML='';nr.style.display='';return;}
+  nr.style.display='none';
+  const grouped=document.body.classList.contains('grouped');
+
+  let list=rows;
+  if(grouped){
+    const grps={},order=[];
+    for(const r of rows){if(!grps[r.artist]){grps[r.artist]=[];order.push(r.artist);}grps[r.artist].push(r);}
+    list=[];
+    for(const a of order){list.push({__gh:true,artist:a,count:grps[a].length});list.push(...grps[a]);}
+  }
+
+  let rowsSeen=0,nextFound=false,html='';
+  const pastBuf=[];
+
+  function renderRow(r,forcePast){
+    const d=pdate(r.date);
+    const past=forcePast||(d&&d<TODAY);
+    const isNext=!past&&!nextFound&&d&&d>=TODAY;
+    if(isNext)nextFound=true;
+    const cls=past?'past':isNext?'next':'';
+    const isHLUS=r.country==='United States'&&!!r.state;
+    const rid=isHLUS?'hlr'+(rowsSeen++):null;
+    let out=`<tr data-a="${esc(r.artist)}" class="${cls}${isHLUS?' hl-tour-row':''}"${isHLUS?` id="${rid}" onclick="toggleHLRetail('${rid}')" title="Click to view confirmed retail nearby"`:''}>
+      <td class="date">${hl(displayDate(r.date),q)}</td>
+      <td><span class="dot" style="background:${aC(r.artist)}"></span>${hl(r.artist,q)}</td>
+      <td>${hl(r.country,q)}</td>
+      <td>${hl(r.state,q)}</td>
+      <td>${hl(r.city,q)}</td>
+      <td>${venueHtml(r.venue,r.city,q)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${hl(r.additionalArtist,q)}</td>
+      <td>${hl(r.notes,q)}</td>
+      <td class="cm">${esc(r.dateCreated)}</td>
+      <td class="cm">${esc(r.dateModified)}</td>
+    </tr>`;
+    if(isHLUS)out+=hlRetailPanel(rid,r);
+    return out;
+  }
+
+  for(const r of list){
+    if(r.__gh){
+      html+=`<tr class="gh" style="background:${aC(r.artist)}"><td colspan="11">
+        <span class="dot" style="background:rgba(255,255,255,.5)"></span>
+        ${esc(r.artist)} &mdash; ${r.count} date${r.count!==1?'s':''}
+      </td></tr>`;
+      continue;
+    }
+    const d=pdate(r.date);
+    const past=d&&d<TODAY;
+    if(past){pastBuf.push(r);continue;}
+    html+=renderRow(r,false);
+  }
+
+  // Past dates: collapsible section
+  if(pastBuf.length){
+    const pid='past-rows-'+Date.now();
+    html+=`<tr class="past-sep" id="psep" onclick="togglePastRows()">
+      <td colspan="11">Past Dates <span>(${pastBuf.length})</span><span class="ps-arrow">▶</span></td>
+    </tr>`;
+    html+=`<tr id="${pid}" style="display:none"><td colspan="11" style="padding:0"><table style="width:100%;border-collapse:collapse">`;
+    html+='<tbody id="past-inner">';
+    for(const r of pastBuf)html+=renderRow(r,true);
+    html+='</tbody></table></td></tr>';
+  }
+
+  tb.innerHTML=html;
+}
+
+function togglePastRows(){
+  const sep=document.getElementById('psep');
+  const wrap=sep?.nextElementSibling;
+  if(!sep||!wrap)return;
+  const open=wrap.style.display==='none';
+  wrap.style.display=open?'table-row':'none';
+  sep.classList.toggle('open',open);
+}
+
+// ── Map render ────────────────────────────────────────────────────────────────
+function initMap(){
+  if(lmap)return;
+  lmap=L.map('map').setView([30,10],2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:18
+  }).addTo(lmap);
+  buildLegend();
+}
+
+let artVis=Object.fromEntries(Object.keys(ARTISTS).map(a=>[a,true]));
+
+function buildLegend(){
+  document.getElementById('la').innerHTML=ARTIST_ORDER.map(n=>{
+    if(!ARTISTS[n])return '';
+    const id='leg_'+n.replace(/\s/g,'_');
+    return `<div class="li"><input type="checkbox" id="${id}" checked onchange="toggleArt('${n.replace(/'/g,"\\'")}')">
+      <span class="lsw" style="background:${ARTISTS[n].color}"></span>
+      <label for="${id}">${n}</label></div>`;
+  }).join('');
+}
+
+function toggleArt(a){
+  artVis[a]=!artVis[a];
+  markers.forEach(({row,m})=>{if(row.artist===a){artVis[a]?m.addTo(lmap):lmap.removeLayer(m);}});
+  if(mapRoutes[a]){artVis[a]&&showRoutes?mapRoutes[a].addTo(lmap):lmap.removeLayer(mapRoutes[a]);}
+}
+
+function toggleRoutes(){
+  showRoutes=document.getElementById('tr').checked;
+  Object.entries(mapRoutes).forEach(([a,l])=>{
+    showRoutes&&artVis[a]?l.addTo(lmap):lmap.removeLayer(l);
+  });
+}
+
+function renderMap(rows){
+  initMap();
+  markers.forEach(({m})=>lmap.removeLayer(m));markers=[];
+  Object.values(mapRoutes).forEach(l=>lmap.removeLayer(l));mapRoutes={};
+
+  const byA={};
+  for(const r of rows){if(!byA[r.artist])byA[r.artist]=[];byA[r.artist].push(r);}
+  const bounds=[];
+
+  for(const[artist,ar]of Object.entries(byA)){
+    const color=aC(artist);
+    const sorted=[...ar].sort((a,b)=>(pdate(a.date)?.getTime()??0)-(pdate(b.date)?.getTime()??0));
+    const pts=[];
+    for(const r of sorted){
+      const co=geoCoords(r);if(!co)continue;
+      bounds.push(co);pts.push(co);
+      const past=pdate(r.date)<TODAY;
+      const mk=L.circleMarker(co,{radius:7,fillColor:color,color:'#fff',weight:1.5,opacity:1,fillOpacity:past?.3:.9});
+      const ds=displayDate(r.date).replace(/\n/g,' – ').replace(/\|/g,' – ');
+      const loc=[r.city,r.state,r.country].filter(Boolean).join(', ');
+      mk.bindPopup(`<div style="min-width:175px;font-family:-apple-system,sans-serif;font-size:13px">
+        <div style="font-weight:700;color:${color};margin-bottom:5px">${esc(r.artist)}</div>
+        <div style="font-weight:600;margin-bottom:3px">${esc(ds)}</div>
+        <div style="margin-bottom:2px">${venueLinkRaw(r.venue,r.city)}</div>
+        <div style="color:#777;font-size:12px;margin-bottom:5px">${esc(loc)}</div>
+        ${r.additionalArtist?'<div style="color:#999;font-size:11px;margin-bottom:4px">w/ '+esc(r.additionalArtist)+'</div>':''}
+        ${statusBadge(r.status)}
+      </div>`);
+      if(artVis[artist])mk.addTo(lmap);
+      markers.push({row:r,m:mk});
+    }
+    if(pts.length>1){
+      const line=L.polyline(pts,{color,weight:2,opacity:.4,dashArray:'5 5'});
+      mapRoutes[artist]=line;
+      if(showRoutes&&artVis[artist])line.addTo(lmap);
+    }
+  }
+  if(bounds.length)lmap.fitBounds(bounds,{padding:[40,40]});
+}
+
+// ── Map artist info panel ─────────────────────────────────────────────────────
+function renderMapInfo(rows){
+  const panel=document.getElementById('map-info');
+  const f=gf();
+  if(!f.a||!rows.length){panel.style.display='none';return;}
+  const color=aC(f.a);
+  const ctrs=[...new Set(rows.map(r=>r.country).filter(Boolean))];
+  const fests=rows.filter(isFestival).length;
+  const ann=rows.filter(r=>r.status==='Announced').length;
+  const pend=rows.filter(r=>r.status==='Pending').length;
+  const supportArtists=[...new Set(rows.map(r=>r.additionalArtist).filter(Boolean))];
+  panel.innerHTML=`
+    <div class="mi-name" style="color:${color}">
+      <span class="dot" style="background:${color}"></span>${esc(f.a)}
+    </div>
+    <div class="mi-row"><span class="ml">Dates shown</span><span class="mv">${rows.length}</span></div>
+    <div class="mi-row"><span class="ml">Countries</span><span class="mv">${ctrs.length} (${ctrs.join(', ')})</span></div>
+    <div class="mi-row"><span class="ml">Festivals</span><span class="mv">${fests}</span></div>
+    <div class="mi-row"><span class="ml">Announced</span><span class="mv" style="color:#1a7a4a">${ann}</span></div>
+    <div class="mi-row"><span class="ml">Pending</span><span class="mv" style="color:#b86a00">${pend}</span></div>
+    ${supportArtists.length?`<div class="mi-row"><span class="ml">w/</span><span class="mv">${esc(supportArtists.join(', '))}</span></div>`:''}
+  `;
+  panel.style.display='block';
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+const US_RETAIL={"Alabama":[{"n":"Seasick Records","c":"Birmingham","w":"https://www.seasickbham.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"10,000 Hz Records","c":"Opelika","w":"http://www.10000hzrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Arizona":[{"n":"Stinkweeds","c":"Phoenix","w":"http://www.stinkweeds.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Speedway","c":"Tucson","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Northern Phoenix (Thunderbird Road)","c":"Phoenix","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Chandler","c":"Chandler","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Bethany Home","c":"Phoenix","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Tempe (Mill Ave)","c":"Tempe","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Mesa","c":"Mesa","w":"http://ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records","c":"Phoenix","w":"https://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"California":[{"n":"Amoeba Music - Hollywood","c":"Hollywood","a":["Lucrecia Dalt","Tashi Wada"],"w":"http://www.amoeba.com"},{"n":"Fingerprints","c":"Long Beach","w":"http://www.fingerprintsmusic.com/"},{"n":"Streetlight Records, San Jose","c":"San Jose","w":"http://www.streetlightrecords.com"},{"n":"Going Underground Records","c":"Bakersfield","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.goingundergroundrecords.net"},{"n":"Amoeba Music - San Francisco","c":"San Francisco","a":["Lucrecia Dalt","Tashi Wada"],"w":"http://www.amoeba.com"},{"n":"Streetlight Records, Santa Cruz","c":"Santa Cruz","w":"http://www.streetlightrecords.com"},{"n":"Amoeba Music - Berkeley","c":"Berkeley","a":["Lucrecia Dalt","Tashi Wada"],"w":"http://www.amoeba.com/"},{"n":"Going Underground Records LA","c":"Los Angeles","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"https://goingundergroundrecords.com"},{"n":"Licorice Pizza","c":"Los Angeles","w":"https://licoricepizzarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Amoeba Music","c":"Los Angeles","w":"https://www.amoeba.com"},{"n":"Going Underground","c":"Los Angeles","w":"https://www.goingunderground.net"},{"n":"Permanent Records","c":"Los Angeles","w":"https://permanentrecords.com"},{"n":"Streetlight Records","c":"Santa Cruz","w":"https://www.streetlightrecords.com"},{"n":"Stranded Music","c":"San Francisco"},{"n":"Folk Arts Rare Records","c":"San Diego"},{"n":"M-Theory Music","c":"San Diego","w":"https://www.mtheorymusic.com"}],"Colorado":[{"n":"Twist & Shout","c":"Denver","w":"http://www.twistandshout.com"},{"n":"Wax Trax Records","c":"Denver","w":"https://www.waxtraxrecords.com/","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Wax Trax Records (Broadway Bazaar)","c":"Denver","w":"https://www.waxtraxrecords.com/","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Wax Trax Records (Northside)","c":"Denver","w":"https://www.waxtraxrecords.com/","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Wax Trax","c":"Denver","w":"https://waxtraxrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Connecticut":[{"n":"Redscroll Records","c":"Wallingford","w":"http://www.redscrollrecords.com"},{"n":"Tumbleweeds","c":"Niantic","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.tumbleweedsct.com"},{"n":"Newbury Comics Manchester, CT","c":"Manchester","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Danbury","c":"Danbury","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"https://www.newburycomics.com"}],"District Of Columbia":[{"n":"Byrdland Records","c":"Washington","w":"http://www.byrdlandrecords.com"}],"Florida":[{"n":"Park Ave CDs","c":"Orlando","w":"http://www.parkavecds.com"},{"n":"Tonevendor","c":"St. Augustine","w":"http://www.tonevendor.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Retrofit Records","c":"Tallahassee","w":"https://www.retrofitrecs.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Rust & Wax","c":"West Palm Beach"},{"n":"Tonevendor Records","c":"St. Augustine"}],"Georgia":[{"n":"Criminal Records","c":"Atlanta","w":"http://www.criminalatl.com"},{"n":"Fresh Produce Records","c":"Macon","w":"http://www.freshproducerecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Idaho":[{"n":"Rollin' Records","c":"Boise","w":"http://rollinrecs.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Illinois":[{"n":"Reckless Records: Lakeview","c":"Chicago","a":["Horse Lords","Visible Cloaks"],"w":"http://www.reckless.com"},{"n":"Dusty Groove","c":"Chicago","a":["Pauline Anna Strom"],"w":"http://www.dustygroove.com"},{"n":"Reckless Records: Wicker Park","c":"Chicago","a":["Horse Lords","Visible Cloaks"],"w":"http://www.reckless.com"},{"n":"Reckless Records: Loop","c":"Chicago","a":["Horse Lords","Visible Cloaks"],"w":"http://reckless.com"},{"n":"Shuga Records","c":"Chicago","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"https://www.shugarecords.com"},{"n":"606 Records","c":"Chicago","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.606records.com"},{"n":"Tone Deaf Records","c":"Chicago","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.tonedeafrecs.com"},{"n":"Shuga Records (Logan Square)","c":"Chicago","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.shugarecords.com"},{"n":"Round Trip Records","c":"Chicago","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.RoundTripRecords.store"},{"n":"Rolling Stone Records","c":"Norridge"},{"n":"Reckless Records - N. Milwaukee","c":"Chicago","a":["Horse Lords","Visible Cloaks"],"w":"https://www.reckless.com"},{"n":"Reckless Records - Broadway","c":"Chicago","a":["Horse Lords","Visible Cloaks"],"w":"https://www.reckless.com"}],"Indiana":[{"n":"Landlocked Music","c":"Bloomington","w":"https://store.landlockedmusic.com/"},{"n":"LUNA music","c":"Indianapolis","w":"http://www.lunamusic.net","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Indy CD & Vinyl","c":"Indianapolis","w":"http://indycdandvinyl.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Kentucky":[{"n":"Guestroom Records - Louisville","c":"Louisville","w":"http://guestroomrecordslouisville.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Visible Cloaks"]},{"n":"Guestroom Records Highlands","c":"Louisville","w":"http://www.guestroomrecordslouisville.com","a":["Ariel Kalma","Blondes","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Maine":[{"n":"Newbury Comics Portland ME","c":"Portland","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Massachusetts":[{"n":"Newbury Comics Newbury Street Boston","c":"Boston","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Harvard Square Cambridge","c":"Cambridge","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Natick","c":"Natick","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Burlington","c":"Burlington","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Norwood","c":"Norwood","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Hyannis","c":"Hyannis","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Braintree","c":"Braintree","w":"https://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Peabody","c":"Peabody","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Northampton","c":"Northampton","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics North Dartmouth","c":"N. Darthmouth","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics North Attleboro","c":"N. Attleboro","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Kingston","c":"Kingston","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Faneuil Hall Boston","c":"Boston","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Michigan":[{"n":"Vinyl People Records","c":"Westland","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.vinylpeoplerecords.com"},{"n":"Vertigo Music","c":"Grand Rapids","w":"https://vertigomusic.com"}],"Minnesota":[{"n":"Electric Fetus - Minneapolis","c":"Minneapolis","w":"http://www.electricfetus.com/"},{"n":"Down In The Valley","c":"Golden Valley","w":"http://www.downinthevalley.com"},{"n":"Down In The Valley","c":"Maple Grove","w":"http://www.downinthevalley.com"},{"n":"Electric Fetus","c":"Minneapolis","w":"https://www.electricfetus.com"}],"Mississippi":[{"n":"The End of All Music (Oxford)","c":"Oxford","w":"https://www.theendofallmusic.com"},{"n":"The End of All Music (Jackson)","c":"JACKSON","w":"http://www.theendofallmusic.com"},{"n":"End of All Music","c":"Jackson"}],"Nevada":[{"n":"Zia Records - Eastern (Las Vegas)","c":"Las Vegas","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zia Records - Rainbow (Las Vegas)","c":"Las Vegas","w":"http://www.ziarecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Wax Trax Records","c":"Las Vegas","w":"https://www.waxtraxlv.com"}],"New Hampshire":[{"n":"Newbury Comics West Lebanon NH","c":"West Lebanon","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Nashua NH","c":"Nashua","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Salem, NH","c":"Salem","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Manchester NH","c":"Manchester","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"New York":[{"n":"Looney Tunes","c":"West Babylon","w":"http://www.LooneyTunesRecordStore.com"},{"n":"Rough Trade Shop NYC","c":"New York","a":["Ariel Kalma","Discovery Zone","Flore Laurentienne","Frances Chang","Horse Lords","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Pauline Anna Strom","Satomimagae","Sign Libra","Tashi Wada","Visible Cloaks"],"w":"http://roughtrade.com"},{"n":"Vinyl Fantasy","c":"Brooklyn","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.vinylfantasybk.com"},{"n":"Newbury Comics Garden City New York","c":"Garden City","w":"https://www.newburycomics.com/","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics The Westchester","c":"White Plains","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Smith Haven Mall","c":"Lake Grove","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Palisades Center","c":"West Nyack","w":"http://newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Staten Island","c":"Staten Island","w":"https://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Crossgates Mall","c":"Albany","w":"https://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Syracuse","c":"Syracuse","w":"https://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics","c":"Buffalo","w":"https://newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Rough Trade","c":"New York","w":"https://www.roughtrade.com"},{"n":"Finer Sounds","c":"Brooklyn","w":"https://finersounds.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Academy Record Annex","c":"New York"},{"n":"Record Grouch","c":"Brooklyn","w":"https://www.recordgrouch.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Love Vinyl Records","c":"Schenectady","w":"https://www.lovevinylrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"North Carolina":[{"n":"Lunchbox Records","c":"Charlotte","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.lunchboxrecords.com"},{"n":"All Day Records","c":"Carrboro","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://alldayrecords.com"},{"n":"Nice Price Books and Records, Raleigh","c":"Raleigh","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://nicepricebooksandrecords.com"},{"n":"Yellow Dog Discs","c":"Wilmington","w":"https://www.yellowdogdiscs.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Harvest Records","c":"Asheville","w":"https://harvestrecords.com"}],"Ohio":[{"n":"Used Kids Records","c":"Columbus","w":"https://www.usedkidsrecords.com/","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Culture Clash Records","c":"Toledo","w":"http://www.cultureclashrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Omega Music","c":"Dayton","w":"http://www.omegamusicdayton.com"},{"n":"The Exchange","c":"North Olmsted","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.theexchange.com"},{"n":"Plaid Room Records","c":"Loveland","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.plaidroomrecords.com/"},{"n":"The Current Year","c":"Parma","w":"https://thecurrentyear.com"},{"n":"Culture Clash","c":"Toledo"},{"n":"The Current Year Records and Tapes","c":"Parma"},{"n":"Used Kids","c":"Columbus","w":"https://www.usedkidsrecords.com/","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Oklahoma":[{"n":"Guestroom Records","c":"Norman","w":"http://www.guestroomrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Guestroom Records","c":"Oklahoma City","w":"http://www.guestroomrecords.com"},{"n":"Guestroom Records Edmond","c":"Edmond","w":"http://www.guestroomrecords.com","a":["Ariel Kalma","Blondes","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Oregon":[{"n":"Music Millennium","c":"Portland","w":"http://www.musicmillennium.com/"},{"n":"Jackpot Records","c":"Portland","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.jackpotrecords.com"},{"n":"Mint Gallery Records","c":"Portland","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"https://www.mintgalleryrecords.com"},{"n":"Mississippi Records","c":"Portland","w":"https://mississippirecords.net","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Passenger Seat Records","c":"Portland","w":"https://passengerseatrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Pennsylvania":[{"n":"Gallery of Sound (Mundy St Wilkes-Barre)","c":"Willkes-Barre","a":["Horse Lords"],"w":"http://www.galleryofsound.com"},{"n":"Repo Records","c":"Philadelphia","w":"http://reporecords.com","a":["Andras","Ariel Kalma","Blondes","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"The Exchange","c":"Hermitage","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.theexchange.com"},{"n":"Creep Records","c":"Philadelphia","w":"https://shopcreep.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Gallery of Sound (Dickson City)","c":"Dickson City","a":["Horse Lords"],"w":"http://www.galleryofsound.com"},{"n":"The Government Center","c":"Pittsburgh","w":"https://www.thegovernmentcenter.com/"},{"n":"Gallery of Sound","c":"Wilkes-Barre","a":["Horse Lords"],"w":"https://galleryofsound.com"},{"n":"Great Circles","c":"Philadelphia","w":"https://greatcircles.net"}],"Rhode Island":[{"n":"Looney Tunes","c":"Wakefield","w":"https://www.facebook.com/looneytunes2ri/"},{"n":"Newbury Comics Warwick, RI","c":"Warwick","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Newbury Comics Providence, RI","c":"Providence","w":"http://www.newburycomics.com","a":["Andras","Anna Homler","Ariel Kalma","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"South Carolina":[{"n":"Papa Jazz Record Shoppe","c":"Columbia","w":"http://www.papajazz.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Tennessee":[{"n":"Grimey's","c":"Nashville","w":"http://www.grimeys.com","a":["Ariel Kalma","Blondes","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Vinyl Tap","c":"Nashville","w":"https://vinyltapnashville.com","a":["Ariel Kalma","Helado Negro","Hieroglyphic Being","Pauline Anna Strom","Tashi Wada"]},{"n":"Yellow Racket Records","c":"Chattanooga","w":"http://yellowracketcha.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Vinyl Tap Records","c":"Nashville"}],"Texas":[{"n":"Good Records","c":"Dallas","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://goodrecordstogo.com"},{"n":"End of an Ear","c":"Austin","w":"http://www.endofanear.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Waterloo Records","c":"Austin","a":["Andras","Anna Homler","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Flore Laurentienne","Frances Chang","Helado Negro","Horse Lords","Julia Holter","Kate NV","Lucrecia Dalt","Oliver Coates","Pauline Anna Strom","Tashi Wada","Visible Cloaks"],"w":"http://www.waterloorecords.com"},{"n":"Saint Marie Records","c":"Fort Worth","w":"https://www.SaintMarieRecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Curious Collections","c":"Bryan"},{"n":"Static ATX","c":"Austin"}],"Utah":[{"n":"3hive Record Lounge","c":"Provo","w":"http://shop.3hive.com"}],"Virginia":[{"n":"Plan 9 Music","c":"Richmond","w":"http://www.plan9music.com"},{"n":"Plan 9 Music - Charlottesville","c":"Charlottesville","w":"http://www.plan9music.com"},{"n":"Crooked Beat Records","c":"Alexandria","w":"https://crookedbeatrecords.com"},{"n":"Plan 9 Records","c":"Richmond","w":"https://www.plan9music.com"}],"Washington":[{"n":"Sonic Boom Records","c":"Seattle","w":"http://www.sonicboomrecords.com/","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Helado Negro","Hieroglyphic Being","Ka Baird","Oliver Coates","Palmbomen II","Pauline Anna Strom","Satomimagae","Tashi Wada","Visible Cloaks"]},{"n":"Easy Street Records","c":"Seattle","w":"http://www.easystreetonline.com/"},{"n":"Drowned World Records","c":"Seattle","w":"https://drownedworldrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Zion's Gate Records","c":"Seattle"},{"n":"Further Records","c":"Seattle","w":"https://furtherrecords.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Rainy Day Records","c":"Olympia"},{"n":"Hex Enduction Records","c":"Seattle","w":"https://www.hexenduction.com"}],"Wisconsin":[{"n":"Strictly Discs","c":"Madison","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://www.strictlydiscs.com"},{"n":"MadCity Music","c":"Madison","w":"http://www.madcitymusic.net"},{"n":"Eroding Winds (Oshkosh)","c":"Oshkosh","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"],"w":"http://erodingwinds.com"},{"n":"MadCity Music Exchange","c":"Madison","w":"https://www.madcitymusicexchange.com"},{"n":"Retrospekt","c":"Milwaukee","w":"https://www.retrospekt.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]},{"n":"Acme Records","c":"Milwaukee","w":"https://acmerecordsmke.com"}],"Kansas":[{"n":"Love Garden","c":"Lawrence","w":"https://lovegarden.com"}],"New Jersey":[{"n":"Princeton Record Exchange","c":"Princeton","w":"https://www.prex.com"},{"n":"14a Records","c":"Bayonne","w":"https://14arecords.com"}],"Vermont":[{"n":"Autumn Records","c":"Winooski","w":"https://www.autumnrecordsvt.com"}],"Missouri":[{"n":"Euclid Records","c":"St. Louis","w":"https://euclidrecords.com"}],"Nebraska":[{"n":"Homer's Music & Gifts","c":"Omaha","w":"https://homersmusic.com"},{"n":"Grapefruit Records","c":"Omaha","w":"https://www.grapefruitrecordclub.com","a":["Andras","Anna Homler","Ariel Kalma","Bing & Ruth","Blondes","Colin Self","Craig Leon","Discovery Zone","Emily A. Sprague","Flore Laurentienne","Frances Chang","Greg Fox","Helado Negro","Hieroglyphic Being","Horse Lords","Julia Holter","K. Leimer","Ka Baird","Kate NV","Lucrecia Dalt","M. Sage","Mark Renner","Oliver Coates","Palmbomen II","Pauline Anna Strom","Powder","Satomimagae","Sign Libra","Tashi Wada","Tristan Allen","Visible Cloaks"]}],"Maryland":[{"n":"Normal's Books & Music","c":"Baltimore","w":"https://www.normals.com"},{"n":"Joe's Record Paradise","c":"Silver Spring","w":"http://www.joesrecordparadise.com"}],"New Mexico":[{"n":"Wooden Indian Records","c":"Santa Fe"},{"n":"Natural Sound Records","c":"Albuquerque"}]};
+const CONFIRMED_LOOKUP=new Map();
+for(const stores of Object.values(US_RETAIL)){for(const s of stores){CONFIRMED_LOOKUP.set(s.n.toLowerCase(),s.a||[]);}}
+
+const STORES={
+  'Asheville|North Carolina':[{name:'Static Age Records',web:'http://www.staticagerecords.com',rsd:'https://recordstoreday.com/Store/3424'},{name:'Harvest Records',web:'https://www.harvest-records.com/',rsd:'https://recordstoreday.com/Store/3560'},{name:'Voltage Records',web:'http://https://www.facebook.com/voltageavl/',rsd:'https://recordstoreday.com/Store/12555'},{name:'Records In The RAD',web:'http://recordsintherad.com',rsd:'https://recordstoreday.com/Store/24391'},{name:'Baby Rabiez',web:'http://www.babyrabiez.com',rsd:'https://recordstoreday.com/Store/25801'},{name:'Earth River Records',web:'http://www.earthriveravl.com',rsd:'https://recordstoreday.com/Store/25858'}],
+  'Atlanta|Georgia':[{name:'Criminal Records',web:'http://www.criminalatl.com',rsd:'https://recordstoreday.com/Store/3262'},{name:'Fantasyland Records',web:'http://fantasylandrecords.com/',rsd:'https://recordstoreday.com/Store/7722'},{name:'Moods Music/Little 5 Soul',web:'https://www.moodsmusic.net',rsd:'https://recordstoreday.com/Store/13317'},{name:'Disorder Vinyl',web:'http://disordervinyl.com',rsd:'https://recordstoreday.com/Store/24087'},{name:'Rat Room Records',web:'http://www.ratroomrecords.com',rsd:'https://recordstoreday.com/Store/24189'},{name:'JB\'s Record Lounge',web:'http://www.jbsrecordlounge.com',rsd:'https://recordstoreday.com/Store/24377'},{name:'The Record Loft',web:'http://www.therecordloftatl.com',rsd:'https://recordstoreday.com/Store/24852'},{name:'Black Habit Records',web:'https://www.instagram.com/blackhabitrecords/',rsd:'https://recordstoreday.com/Store/26547'},{name:'CratesATL',web:'https://cratesatl.com',rsd:'https://recordstoreday.com/Store/26780'},{name:'Vinyl Fiends',web:'http://www.vinylfiends.com',rsd:'https://recordstoreday.com/Store/26934'}],
+  'Baltimore|Maryland':[{name:'The Sound Garden - Baltimore',web:'http://www.sgrecordshop.com',rsd:'https://recordstoreday.com/Store/3600'},{name:'El Suprimo Records',web:'http://www.elsuprimo.com',rsd:'https://recordstoreday.com/Store/4067'},{name:'celebrated summer records',web:'http://www.celebratedsummerrecords.com',rsd:'https://recordstoreday.com/Store/5299'},{name:'Fallout Books & Records',web:'http://',rsd:'https://recordstoreday.com/Store/12443'},{name:'Normals',web:'http://www.normals.com',rsd:'https://recordstoreday.com/Store/24047'},{name:'Vinyl & Pages',web:'https://vinylandpages.com',rsd:'https://recordstoreday.com/Store/27171'}],
+  'Boise|Idaho':[{name:'The Record Exchange',web:'http://therecordexchange.com',rsd:'https://recordstoreday.com/Store/6799'},{name:'Modern Sounds Vinyl and Music',web:'https://modernsoundsvinyl.com',rsd:'https://recordstoreday.com/Store/23524'},{name:'Rollin\' Records',web:'http://rollinrecs.com',rsd:'https://recordstoreday.com/Store/24817'}],
+  'Boston|Massachusetts':[{name:'Tres Gatos',web:'http://www.tresgatosjp.com',rsd:'https://recordstoreday.com/Store/6748'},{name:'Nuggets',web:'http://nuggetsrecords.com',rsd:'https://recordstoreday.com/Store/6844'},{name:'Newbury Comics Newbury Street Boston',web:'http://www.newburycomics.com',rsd:'https://recordstoreday.com/Store/12588'},{name:'Newbury Comics Faneuil Hall Boston',web:'http://www.newburycomics.com',rsd:'https://recordstoreday.com/Store/12616'},{name:'GOOD TASTE Records',web:'https://goodtasterecords.com',rsd:'https://recordstoreday.com/Store/24186'}],
+  'Brooklyn|New York':[{name:'earwax records',web:'https://www.earwaxrecords.net',rsd:'https://recordstoreday.com/Store/5681'},{name:'Academy Record Annex',web:'https://academy-lps.com/',rsd:'https://recordstoreday.com/Store/5968'},{name:'Captured Tracks Shop',web:'http://www.capturedtracks.com',rsd:'https://recordstoreday.com/Store/14242'},{name:'Record Grouch',web:'http://www.recordgrouch.com',rsd:'https://recordstoreday.com/Store/14522'},{name:'Vinyl Fantasy',web:'http://www.vinylfantasybk.com',rsd:'https://recordstoreday.com/Store/15492'},{name:'Superior Elevation Records',web:'http://superiorelevation.com',rsd:'https://recordstoreday.com/Store/15899'},{name:'The Compact Disc Shoppe',web:'https://compact-disc-shoppe.business.site/',rsd:'https://recordstoreday.com/Store/21404'},{name:'Almost Ready Records',web:'http://',rsd:'https://recordstoreday.com/Store/21865'},{name:'5th Ave Records',web:'https://www.facebook.com/5thaverecord',rsd:'https://recordstoreday.com/Store/23285'},{name:'Psychic Records',web:'https://www.psychicrecordsbrooklyn.com/',rsd:'https://recordstoreday.com/Store/23778'},{name:'HIFI PROVISIONS',web:'http://www.hifiprovisions.com',rsd:'https://recordstoreday.com/Store/23797'},{name:'LEGACY',web:'https://legacydumbo.com',rsd:'https://recordstoreday.com/Store/24046'},{name:'For The Record',web:'http://fortherecordnyc.com',rsd:'https://recordstoreday.com/Store/24256'},{name:'OCTOPUS RECORDS',web:'http://WWW.OCTOPUSRECORDS.NYC',rsd:'https://recordstoreday.com/Store/26097'},{name:'Vinyl Veritas',web:'http://www.vinylveritas.com',rsd:'https://recordstoreday.com/Store/26130'},{name:'Sterling Record Store',web:'http://www.sterlingrecordstore.com',rsd:'https://recordstoreday.com/Store/26189'},{name:'Record Shop',web:'https://360recordshop.com',rsd:'https://recordstoreday.com/Store/26234'},{name:'Symphony Music',web:'https://www.discogs.com/seller/Sym_Muz/profile',rsd:'https://recordstoreday.com/Store/26828'}],
+  'Buffalo|New York':[{name:'Black Dots',web:'http://blackdotsbuffalo.shop/',rsd:'https://recordstoreday.com/Store/14101'},{name:'Revolver Records, Inc (Elmwood Ave)',web:'http://www.revolverrecordsinc.com',rsd:'https://recordstoreday.com/Store/21590'},{name:'Hi Fi Hits',web:'http://www.hi-fihits.com',rsd:'https://recordstoreday.com/Store/22890'},{name:'Out There Records',web:'https://www.instagram.com/out_there_records/',rsd:'https://recordstoreday.com/Store/24217'},{name:'Newbury Comics',web:'https://newburycomics.com',rsd:'https://recordstoreday.com/Store/27119'}],
+  'Carrboro|North Carolina':[{name:'All Day Records',web:'http://alldayrecords.com',rsd:'https://recordstoreday.com/Store/7254'},{name:'Vinyl Perk',web:'http://www.vinylperk.com',rsd:'https://recordstoreday.com/Store/15675'}],
+  'Chicago|Illinois':[{name:'Reckless Records: Lakeview',web:'http://www.reckless.com',rsd:'https://recordstoreday.com/Store/3776'},{name:'Laurie\'s Planet of Sound',web:'http://lauriesplanetofsound.com/',rsd:'https://recordstoreday.com/Store/3806'},{name:'Gramaphone Records',web:'http://webstore.gramaphonerecords.com/',rsd:'https://recordstoreday.com/Store/3853'},{name:'Beverly Records',web:'http://www.beverlyrecords.com',rsd:'https://recordstoreday.com/Store/4056'},{name:'Dusty Groove',web:'http://www.dustygroove.com',rsd:'https://recordstoreday.com/Store/5149'},{name:'Reckless Records: Wicker Park',web:'http://www.reckless.com',rsd:'https://recordstoreday.com/Store/5788'},{name:'Reckless Records: Loop',web:'http://reckless.com',rsd:'https://recordstoreday.com/Store/5913'},{name:'Record Breakers',web:'https://www.recordbreakerschi.com',rsd:'https://recordstoreday.com/Store/7196'},{name:'The Exchange',web:'http:///theexchange.com',rsd:'https://recordstoreday.com/Store/7303'},{name:'The Exchange',web:'http:///theexchange.com',rsd:'https://recordstoreday.com/Store/7304'},{name:'Hyde Park Records',web:'http://www.facebook.com/pages/Hyde-Park-Records/200682246615283',rsd:'https://recordstoreday.com/Store/7372'},{name:'Shuga Records',web:'https://www.shugarecords.com',rsd:'https://recordstoreday.com/Store/7654'},{name:'Bucket O\'Blood Books & Records',web:'http://www.bucketoblood.com',rsd:'https://recordstoreday.com/Store/14216'},{name:'Bric-a-Brac Records & Collectibles',web:'http://www.bricabracrecords.com',rsd:'https://recordstoreday.com/Store/14219'},{name:'Pinwheel Records',web:'http://www.pinwheelrecords.com',rsd:'https://recordstoreday.com/Store/15483'},{name:'606 Records',web:'http://www.606records.com',rsd:'https://recordstoreday.com/Store/15564'},{name:'Rattleback Records',web:'http://www.rattlebackrecords.com',rsd:'https://recordstoreday.com/Store/21656'},{name:'Bob\'s Blues & Jazz Mart',web:'http://bluesandjazzmart.com',rsd:'https://recordstoreday.com/Store/22619'},{name:'Tone Deaf Records',web:'http://www.tonedeafrecs.com',rsd:'https://recordstoreday.com/Store/23018'},{name:'Beverly Phono Mart',web:'http://www.beverlyphonomart.com',rsd:'https://recordstoreday.com/Store/24023'},{name:'Shuga Records (Logan Square)',web:'http://www.shugarecords.com',rsd:'https://recordstoreday.com/Store/24498'},{name:'Round Trip Records',web:'http://www.RoundTripRecords.store',rsd:'https://recordstoreday.com/Store/24579'},{name:'Orbit Records',web:'http://www.orbitrecords.com',rsd:'https://recordstoreday.com/Store/24582'},{name:'Loud Pizza Records',web:'http://www.LoudPizza.com',rsd:'https://recordstoreday.com/Store/24725'},{name:'Graveface Chicago',web:'http://Graveface.com',rsd:'https://recordstoreday.com/Store/25599'},{name:'Bridgeport Records',web:'http://Bridgeportrecords.com',rsd:'https://recordstoreday.com/Store/26487'},{name:'Out Of The Past Records',web:'https://outofthepastrecords.com/',rsd:'https://recordstoreday.com/Store/26698'}],
+  'Cincinnati|Ohio':[{name:'Shake It',web:'https://www.shakeitrecords.com',rsd:'https://recordstoreday.com/Store/3553'},{name:'Everybody\'s Records',web:'http://www.everybodysrecords.com',rsd:'https://recordstoreday.com/Store/3968'},{name:'MetaModern Music',web:'http://www.metamodernmusic.com',rsd:'https://recordstoreday.com/Store/15595'},{name:'The Media Rack',web:'http://',rsd:'https://recordstoreday.com/Store/17135'},{name:'Feel It Record Shop',web:'http://www.feelitrecordshop.com',rsd:'https://recordstoreday.com/Store/26503'},{name:'Alien Records llc',web:'https://alienrecordsotr.com',rsd:'https://recordstoreday.com/Store/26518'},{name:'Sessions Vinyl Room',web:'https://sessionsvinylroom.com',rsd:'https://recordstoreday.com/Store/26800'}],
+  'Columbia|Missouri':[{name:'Slackers Music - Movies - Games',web:'http://slackers.com',rsd:'https://recordstoreday.com/Store/5068'},{name:'Hitt Records',web:'http://www.hittrecords.com/#welcome',rsd:'https://recordstoreday.com/Store/14374'}],
+  'Denver|Colorado':[{name:'Twist & Shout',web:'http://www.twistandshout.com',rsd:'https://recordstoreday.com/Store/3507'},{name:'Wax Trax Records',web:'https://www.waxtraxrecords.com/',rsd:'https://recordstoreday.com/Store/5228'},{name:'Angelo\'s CDs & Records (S. Broadway)',web:'http://www.angeloscds.com',rsd:'https://recordstoreday.com/Store/5914'},{name:'Black & Read',web:'http://blackandread.net',rsd:'https://recordstoreday.com/Store/6606'},{name:'Wax Trax Records (Broadway Bazaar)',web:'https://www.waxtraxrecords.com/',rsd:'https://recordstoreday.com/Store/26256'},{name:'Wax Trax Records (Northside)',web:'https://www.waxtraxrecords.com/',rsd:'https://recordstoreday.com/Store/27139'}],
+  'Detroit|Michigan':[{name:'Third Man Records [Detroit]',web:'https://thirdmanrecords.com',rsd:'https://recordstoreday.com/Store/21515'},{name:'Paramita Sound',web:'http://www.paramita.xyz',rsd:'https://recordstoreday.com/Store/24671'}],
+  'Los Angeles|California':[{name:'Record Surplus',web:'https://www.recordsurplusla.com',rsd:'https://recordstoreday.com/Store/3686'},{name:'Visjon Records',web:'http://www.visjonrecords.com',rsd:'https://recordstoreday.com/Store/3840'},{name:'Bombass Muzik',web:'http://bombassmuzik.com',rsd:'https://recordstoreday.com/Store/3849'},{name:'Gimme Gimme Records',web:'http://www.gimmegimmerecords.com/',rsd:'https://recordstoreday.com/Store/5989'},{name:'sick city records',web:'http://',rsd:'https://recordstoreday.com/Store/12835'},{name:'Jacknife Records & Tapes',web:'http://www.jackniferecordsandtapes.com',rsd:'https://recordstoreday.com/Store/12837'},{name:'CD Trader',web:'http://www.cdtradertarzana.com',rsd:'https://recordstoreday.com/Store/13416'},{name:'Blue Bag Records',web:'https://www.facebook.com/bluebagrecords',rsd:'https://recordstoreday.com/Store/14239'},{name:'Going Underground Records LA',web:'https://goingundergroundrecords.com',rsd:'https://recordstoreday.com/Store/21900'},{name:'Supervinyl',web:'http://www.supervinylusa.com',rsd:'https://recordstoreday.com/Store/23067'},{name:'Paradise City Records & Stuff',web:'http://www.paradisecitymusic.com',rsd:'https://recordstoreday.com/Store/23326'},{name:'Arroyo Records',web:'http://',rsd:'https://recordstoreday.com/Store/23419'},{name:'Mount Analog',web:'http://www.climbmountanalog.com/shop',rsd:'https://recordstoreday.com/Store/23476'},{name:'Licorice Pizza',web:'https://licoricepizzarecords.com',rsd:'https://recordstoreday.com/Store/23594'},{name:'On Maritime Records',web:'http://onmaritimerecords.com',rsd:'https://recordstoreday.com/Store/24366'},{name:'Nivessa on Pico (Mid-City)',web:'http://www.nivessa.com',rsd:'https://recordstoreday.com/Store/24868'},{name:'Nivessa Hollywood',web:'http://nivessa.com',rsd:'https://recordstoreday.com/Store/26368'},{name:'Sound Platters',web:'http://www.soundplatters.com',rsd:'https://recordstoreday.com/Store/26452'}],
+  'Madison|Wisconsin':[{name:'Strictly Discs',web:'http://www.strictlydiscs.com',rsd:'https://recordstoreday.com/Store/5364'},{name:'MadCity Music',web:'http://www.madcitymusic.net',rsd:'https://recordstoreday.com/Store/5435'},{name:'Sugar Shack Records',web:'http://sugarshackrecords.net',rsd:'https://recordstoreday.com/Store/5767'},{name:'B-Side Records',web:'http://www.b-sidemadison.com',rsd:'https://recordstoreday.com/Store/5984'},{name:'The Door',web:'http://no current site',rsd:'https://recordstoreday.com/Store/27141'}],
+  'Minneapolis|Minnesota':[{name:'Electric Fetus - Minneapolis',web:'http://www.electricfetus.com/',rsd:'https://recordstoreday.com/Store/3637'},{name:'Know Name Records',web:'http://www.knowname.com',rsd:'https://recordstoreday.com/Store/3925'},{name:'Extreme Noise Records',web:'http://www.extremenoise.com',rsd:'https://recordstoreday.com/Store/3967'},{name:'Roadrunner Records',web:'http://www.myspace.com/roadrunnermpls',rsd:'https://recordstoreday.com/Store/6876'},{name:'Cheapo Records',web:'http://cheapodiscs.com',rsd:'https://recordstoreday.com/Store/7512'},{name:'Lucky Cat Records',web:'https://luckycatrecords.com/',rsd:'https://recordstoreday.com/Store/26422'}],
+  'New York|New York':[{name:'Downtown Music Gallery',web:'http://downtownmusicgallery.com',rsd:'https://recordstoreday.com/Store/3703'},{name:'GENERATION RECORDS',web:'http://www.generationrecords.com',rsd:'https://recordstoreday.com/Store/5333'},{name:'Academy LPs',web:'https://academy-lps.com/',rsd:'https://recordstoreday.com/Store/6426'},{name:'Record Runner',web:'http://RECORDRUNNERUSA.COM',rsd:'https://recordstoreday.com/Store/6737'},{name:'Rock and Soul Records',web:'http://www.rockandsoul.com',rsd:'https://recordstoreday.com/Store/6749'},{name:'Academy Records & CDs',web:'http://www.academy-records.com',rsd:'https://recordstoreday.com/Store/13036'},{name:'Rough Trade Shop NYC',web:'http://roughtrade.com',rsd:'https://recordstoreday.com/Store/14116'},{name:'Jazz Record Center',web:'http://jazzrecordcenter.com',rsd:'https://recordstoreday.com/Store/14923'},{name:'Cinderblock People',web:'http://www.cinderblockpeople.com',rsd:'https://recordstoreday.com/Store/22965'},{name:'Manhattan45',web:'http://www.manhattan45.com',rsd:'https://recordstoreday.com/Store/23920'},{name:'Ergot Records',web:'http://ergotrecords.blogspot.com/',rsd:'https://recordstoreday.com/Store/25400'}],
+  'Northampton|Massachusetts':[{name:'Turn It Up!',web:'http://www.turnitup.com',rsd:'https://recordstoreday.com/Store/3939'},{name:'Newbury Comics Northampton',web:'http://www.newburycomics.com',rsd:'https://recordstoreday.com/Store/12602'},{name:'Deep Thoughts Record Shop',web:'http://www.deepthoughtsrecordshop.com',rsd:'https://recordstoreday.com/Store/13843'}],
+  'Omaha|Nebraska':[{name:'Homer\'s Music & Gifts',web:'http://www.homersmusic.com',rsd:'https://recordstoreday.com/Store/3589'},{name:'Recycled Sounds',web:'http://recycledsoundsomaha',rsd:'https://recordstoreday.com/Store/5940'},{name:'Almost Music',web:'https://www.facebook.com/almostmusicshop',rsd:'https://recordstoreday.com/Store/14463'},{name:'Ear Wax Records',web:'https://www.earwaxomaha.com/',rsd:'https://recordstoreday.com/Store/16535'},{name:'Tradepost Entertainment',web:'http://www.tradepostentertainment.com',rsd:'https://recordstoreday.com/Store/16548'},{name:'Grapefruit Records',web:'http://www.grapefruitrecordclub.com',rsd:'https://recordstoreday.com/Store/23945'}],
+  'Philadelphia|Pennsylvania':[{name:'Main Street Music',web:'http://www.mainstreetmusicpa.com/',rsd:'https://recordstoreday.com/Store/3861'},{name:'Repo Records',web:'http://reporecords.com',rsd:'https://recordstoreday.com/Store/5340'},{name:'Hideaway Music',web:'http://Hideawaymusic.org',rsd:'https://recordstoreday.com/Store/5350'},{name:'Digital Underground',web:'https://www.digitalundergroundphilly.com',rsd:'https://recordstoreday.com/Store/5971'},{name:'Milkcrate Cafe',web:'http://milkcratecafe.com',rsd:'https://recordstoreday.com/Store/7143'},{name:'Creep Records',web:'https://shopcreep.com',rsd:'https://recordstoreday.com/Store/7414'},{name:'Sit & Spin Records',web:'http://www.sitandspinrecords.blogspot.com',rsd:'https://recordstoreday.com/Store/13316'},{name:'VINYL ALTAR',web:'http://mkt.com/vinylaltar',rsd:'https://recordstoreday.com/Store/15711'},{name:'Cratediggaz Records',web:'https://cratediggazrecords.bigcartel.com/',rsd:'https://recordstoreday.com/Store/24221'},{name:'Latchkey',web:'https://latchkeyrecords.com',rsd:'https://recordstoreday.com/Store/24229'}],
+  'Portland|Maine':[{name:'Newbury Comics Portland ME',web:'http://www.newburycomics.com',rsd:'https://recordstoreday.com/Store/7732'}],
+  'Rock Island|Illinois':[{name:'Ragged Records & Music',web:'http://www.raggedrecords.org/',rsd:'https://recordstoreday.com/Store/21578'}],
+  'San Francisco|California':[{name:'Amoeba Music - San Francisco',web:'http://www.amoeba.com',rsd:'https://recordstoreday.com/Store/5854'},{name:'Thrillhouse Records',web:'http://www.thrillhouserecords.com/',rsd:'https://recordstoreday.com/Store/14509'},{name:'Vinyl Dreams',web:'http://www.vinyldreamssf.com',rsd:'https://recordstoreday.com/Store/14580'}],
+  'Santa Fe|New Mexico':[{name:'Guy In The Groove',web:'http://www.guyinthegroove.com',rsd:'https://recordstoreday.com/Store/12813'},{name:'The Good Stuff - Cafe Vinyl',web:'http://www.thegoodstuffsantafe.com',rsd:'https://recordstoreday.com/Store/15022'},{name:'Lost Padre Records',web:'https://www.lostpadrerecords.com',rsd:'https://recordstoreday.com/Store/21576'}],
+  'St Louis|Missouri':[{name:'Euclid Records',web:'http://www.euclidrecords.com',rsd:'https://recordstoreday.com/Store/3541'},{name:'Vintage Vinyl',web:'https://www.vintagevinyl.com',rsd:'https://recordstoreday.com/Store/3556'},{name:'Slackers Music - Movies - Games',web:'http://slackers.com',rsd:'https://recordstoreday.com/Store/5073'},{name:'Record Exchange',web:'http://www.recordexchangestl.com',rsd:'https://recordstoreday.com/Store/6879'},{name:'CD Warehouse St. Louis',web:'http://www.facebook.com/pages/Cd-Warehouse-St-Louis/183565096374',rsd:'https://recordstoreday.com/Store/7313'},{name:'Planet Score Records',web:'http://',rsd:'https://recordstoreday.com/Store/15650'},{name:'The Record Space',web:'https://therecordspace.com/',rsd:'https://recordstoreday.com/Store/21861'},{name:'Kismet Creative Center',web:'http://www.kismetrecordsstl.com',rsd:'https://recordstoreday.com/Store/23276'},{name:'Joe\'s Records STL',web:'http://www.joesrecords.com',rsd:'https://recordstoreday.com/Store/24042'},{name:'Frenchtown Records',web:'http://www.frenchtownrecords.com',rsd:'https://recordstoreday.com/Store/24178'}],
+  'State College|Pennsylvania':[{name:'Music Underground',web:'http://www.musicundergroundusa.com',rsd:'https://recordstoreday.com/Store/7130'}],
+  'Urbana|Illinois':[{name:'Record Swap',web:'http://www.recordswap.com',rsd:'https://recordstoreday.com/Store/13516'},{name:'See You CD & Vinyl',web:'https://seeyoucdandvinyl.storenvy.com',rsd:'https://recordstoreday.com/Store/15557'},{name:'Parasol Records',web:'https://www.parasolrecords.com/',rsd:'https://recordstoreday.com/Store/26250'}],
+};
+
+function getStores(r){return STORES[r.city+'|'+r.state]||[];}
+
+function renderStores(rows){
+  const body=document.getElementById('stores-body');
+  const f=gf();
+
+  // Artist filter: show only confirmed stores for that artist as a simple list
+  if(f.a){
+    const artist=f.a;
+    const confirmed=[];
+    const seen=new Set();
+    for(const r of rows){
+      const stores=getStores(r);
+      for(const s of stores){
+        if(seen.has(s.name))continue;
+        const artists=CONFIRMED_LOOKUP.get(s.name.toLowerCase());
+        if(artists&&artists.includes(artist)){seen.add(s.name);confirmed.push({s,city:r.city,state:r.state});}
+      }
+    }
+    if(!confirmed.length){
+      body.innerHTML=`<div style="text-align:center;padding:48px;color:#999;font-size:14px">No confirmed retail partners found for ${esc(artist)}.</div>`;
+      document.getElementById('ss-matched').textContent='0';
+      document.getElementById('ss-total').textContent='0';
+      return;
+    }
+    const color=aC(artist);
+    let html=`<div class="sgroup"><div class="sgroup-hdr"><span class="dot" style="background:${color}"></span><strong style="color:${color}">${esc(artist)}</strong><span style="font-size:11px;color:#bbb">${confirmed.length} confirmed store${confirmed.length!==1?'s':''}</span></div>`;
+    html+=confirmed.map(({s,city,state})=>`<div class="sstore-item">
+      <span class="sstore-name"><span class="sstore-star">★</span>${esc(s.name)}</span>
+      <span style="font-size:11px;color:#999">${esc(city)}, ${esc(state)}</span>
+      <div class="sstore-links">
+        ${s.web?`<a class="sl-web" href="${s.web}" target="_blank" rel="noopener">Website</a>`:''}
+        ${s.rsd?`<a class="sl-rsd" href="${s.rsd}" target="_blank" rel="noopener">RSD</a>`:''}
+      </div>
+    </div>`).join('');
+    html+='</div>';
+    body.innerHTML=html;
+    document.getElementById('ss-matched').textContent=confirmed.length;
+    document.getElementById('ss-total').textContent=confirmed.length;
+    return;
+  }
+
+  const usRows=rows.filter(r=>r.country==='United States');
+  if(!usRows.length){
+    body.innerHTML='<div style="text-align:center;padding:48px;color:#999;font-size:14px">No tour dates match the current filter.</div>';
+    document.getElementById('ss-matched').textContent='0';
+    document.getElementById('ss-total').textContent='0';
+    return;
+  }
+  const grps={},order=[];
+  for(const r of usRows){if(!grps[r.artist]){grps[r.artist]=[];order.push(r.artist);}grps[r.artist].push(r);}
+  let html='',matchedCities=new Set(),storeCount=0;
+  for(const artist of order){
+    const color=aC(artist);
+    const ar=grps[artist];
+    html+=`<div class="sgroup">
+      <div class="sgroup-hdr">
+        <span class="dot" style="background:${color}"></span>
+        <strong style="color:${color}">${esc(artist)}</strong>
+        <span style="font-size:11px;color:#bbb">${ar.length} US date${ar.length!==1?'s':''}</span>
+      </div>`;
+    for(const r of ar){
+      const stores=getStores(r);
+      const past=pdate(r.date)&&pdate(r.date)<TODAY;
+      const id='sd'+Math.random().toString(36).slice(2,8);
+      if(stores.length){matchedCities.add(r.city+'|'+r.state);storeCount+=stores.length;}
+      const badge=stores.length
+        ?`<span class="store-count has">${stores.length} store${stores.length!==1?'s':''}</span>`
+        :`<span class="store-count">no stores</span>`;
+      const items=stores.map(s=>{
+        const confirmed=CONFIRMED_LOOKUP.get(s.name.toLowerCase());
+        const star=confirmed!==undefined?`<span class="sstore-star" title="${confirmed.length?'Confirmed: '+confirmed.join(', '):'RVNG partner store'}">★</span>`:'';
+        return`<div class="sstore-item">
+        <span class="sstore-name">${star}${esc(s.name)}</span>
+        <div class="sstore-links">
+          ${s.web?`<a class="sl-web" href="${s.web}" target="_blank" rel="noopener">Website</a>`:''}
+          ${s.rsd?`<a class="sl-rsd" href="${s.rsd}" target="_blank" rel="noopener">RSD</a>`:''}
+        </div>
+      </div>`;}).join('');
+      html+=`<div class="sdate-row${past?' past-date':''}" id="${id}">
+        <div class="sdate-hdr" onclick="toggleSD('${id}')">
+          <div class="sdate-info">
+            <span class="sdate-date">${esc(displayDate(r.date.split('|')[0]))}</span>
+            <span class="sdate-venue">${esc(r.venue)}</span>
+            <span class="sdate-city">${esc(r.city)}, ${esc(r.state)}</span>
+          </div>
+          ${badge}
+          <span class="sdate-chevron">▶</span>
+        </div>
+        <div class="sstore-list">
+          ${items||'<div class="sno-match">No RSD stores listed for this city.</div>'}
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  body.innerHTML=html;
+  document.getElementById('ss-matched').textContent=matchedCities.size;
+  document.getElementById('ss-total').textContent=storeCount;
+}
+
+function toggleSD(id){document.getElementById(id).classList.toggle('open');}
+
+function retailChip(s,artist){
+  const confirmed=s.a&&s.a.includes(artist);
+  const cls='rp-store'+(confirmed?' art-confirmed':'');
+  const badge=confirmed?'<span class="rp-art-badge">★</span>':'';
+  const link=s.w?` <a href="${esc(s.w)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>`:'';
+  return`<span class="${cls}">${badge}<span class="rp-store-name">${esc(s.n)}</span>${link}</span>`;
+}
+
+function stateRetailBlock(state,city,artist,collapsed){
+  const all=US_RETAIL[state]||[];
+  if(!all.length)return'';
+  const cityStores=all.filter(s=>s.c.toLowerCase()===city.toLowerCase());
+  const otherStores=all.filter(s=>s.c.toLowerCase()!==city.toLowerCase());
+  const artCount=all.filter(s=>s.a&&s.a.includes(artist)).length;
+  let inner='';
+  if(cityStores.length)inner+=`<div class="rp-section"><div class="rp-city-label">In ${esc(city)}</div><div class="rp-stores">${cityStores.map(s=>retailChip(s,artist)).join('')}</div></div>`;
+  if(otherStores.length)inner+=`<div class="rp-section"><div class="rp-city-label">Elsewhere in ${esc(state)}</div><div class="rp-stores">${otherStores.map(s=>retailChip(s,artist)).join('')}</div></div>`;
+  const summary=all.length+' store'+(all.length!==1?'s':'')+(artCount?` — <span style="color:#3a8a30;font-weight:700">${artCount} confirmed stocking ${esc(artist)} ★</span>`:'');
+  return`<div class="${collapsed?'hl-retail-panel':'av-retail-block'}"><div class="rp-header">Retail in ${esc(state)} &nbsp;·&nbsp; ${summary}</div>${inner}</div>`;
+}
+
+function hlRetailPanel(rid,r){
+  const block=stateRetailBlock(r.state,r.city,r.artist,true);
+  if(!block)return'';
+  return`<tr class="hl-retail-row" id="panel-${rid}"><td colspan="11">${block}</td></tr>`;
+}
+
+function toggleHLRetail(rid){
+  const row=document.getElementById(rid);
+  const panel=document.getElementById('panel-'+rid);
+  if(!panel)return;
+  const open=panel.classList.toggle('open');
+  row.classList.toggle('retail-expanded',open);
+}
+
+let storeMarkers=[],showStoreMarkers=false;
+function toggleStoreMarkers(){
+  showStoreMarkers=document.getElementById('show-stores').checked;
+  storeMarkers.forEach(m=>lmap.removeLayer(m));storeMarkers=[];
+  if(showStoreMarkers)drawStoreMarkers();
+}
+function drawStoreMarkers(){
+  initMap();
+  const{rows}=filtered();
+  const cities=new Set(rows.filter(r=>r.country==='United States').map(r=>r.city+'|'+r.state));
+  for(const ck of cities){
+    const stores=STORES[ck];if(!stores)continue;
+    const parts=ck.split('|');const city=parts[0],state=parts[1];
+    const co=GEO[city+'|'+state+'|United States']||GEO[city+'|United States'];
+    if(!co)continue;
+    stores.forEach((s,i)=>{
+      const jitter=[co[0]+(Math.random()-.5)*0.03,co[1]+(Math.random()-.5)*0.03];
+      const mk=L.circleMarker(jitter,{radius:4,fillColor:'#333',color:'#fff',weight:1,fillOpacity:.7});
+      mk.bindPopup(`<div style="min-width:160px;font-family:-apple-system,sans-serif;font-size:12px">
+        <div style="font-weight:700;margin-bottom:4px">${esc(s.name)}</div>
+        <div style="color:#888;font-size:11px;margin-bottom:6px">${esc(city)}, ${esc(state)}</div>
+        <div style="display:flex;gap:5px">
+          ${s.web?'<a href="'+s.web+'" target="_blank" rel="noopener" style="font-size:10px;padding:2px 6px;background:#f0f0f0;border-radius:3px;text-decoration:none;color:#333">Website</a>':''}
+          ${s.rsd?'<a href="'+s.rsd+'" target="_blank" rel="noopener" style="font-size:10px;padding:2px 6px;background:#e8f0fb;border-radius:3px;text-decoration:none;color:#1a4a8a">RSD</a>':''}
+        </div>
+      </div>`);
+      mk.addTo(lmap);storeMarkers.push(mk);
+    });
+  }
+}
+
+function exportCSV(){
+  const{rows}=filtered();
+  const hdr=['Label','Date','Artist','Country','State','City','Venue','Status','Additional Artist','Notes','Date Created','Date Modified'];
+  const lines=[hdr.join(',')];
+  for(const r of rows){
+    lines.push([r.label,r.date.replace(/\n/g,' / '),r.artist,r.country,r.state,
+      r.city,r.venue,r.status,r.additionalArtist,r.notes,r.dateCreated,r.dateModified]
+      .map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(','));
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([lines.join('\r\n')],{type:'text/csv'}));
+  const art=document.getElementById('fa').value;
+  a.download='rvng-tour-dates-'+(art?art.replace(/\s+/g,'-').toLowerCase():'all')+'.csv';
+  a.click();
+}
+
+function exportArtistPDF(artist,mode){
+  mode=mode||'full';
+  if(!artist){alert('Select an artist using the Artist filter (or open an artist view) before exporting a PDF.');return;}
+  const color=aC(artist);
+  const rows=ALL.filter(r=>r.artist===artist).sort((a,b)=>(pdate(a.date)?.getTime()??0)-(pdate(b.date)?.getTime()??0));
+  const usRows=rows.filter(r=>r.country==='United States');
+  const intlRows=rows.filter(r=>r.country!=='United States');
+  const ctrs=[...new Set(rows.map(r=>r.country).filter(Boolean))];
+  const ann=rows.filter(r=>r.status==='Announced').length;
+  const statesInTour=[...new Set(usRows.map(r=>r.state).filter(Boolean))].sort();
+  const totalStores=statesInTour.reduce((t,s)=>t+(US_RETAIL[s]?.length||0),0);
+
+  const dateRows=rows.map(r=>{
+    const d=pdate(r.date);
+    const past=d&&d<TODAY;
+    return`<tr class="${past?'past':''}">
+      <td>${esc(displayDate(r.date).replace(/\|/g,'<br>'))}</td>
+      <td>${esc(r.venue)}</td>
+      <td>${esc(r.city)}</td>
+      <td>${esc(r.state||r.country)}</td>
+      <td class="st">${esc(r.status)}</td>
+      <td>${esc(r.additionalArtist)}</td>
+      <td>${esc(r.notes)}</td>
+    </tr>`;
+  }).join('');
+
+  let appendix='';
+  for(const state of statesInTour){
+    const all=US_RETAIL[state]||[];
+    if(!all.length)continue;
+    const showsInState=usRows.filter(r=>r.state===state);
+    const cities=[...new Set(showsInState.map(r=>r.city))];
+    const showCityLower=cities.map(c=>c.toLowerCase());
+    const cityStores=all.filter(s=>showCityLower.includes(s.c.toLowerCase()));
+    const otherStores=all.filter(s=>!showCityLower.includes(s.c.toLowerCase()));
+    const showInfo=showsInState.map(r=>`${esc(r.city)} (${esc(displayDate(r.date.split('|')[0]))})`).join(', ');
+    appendix+=`<div class="app-state">
+      <h4>${esc(state)}<span class="show-ref"> — show: ${showInfo}</span></h4>
+      ${cityStores.length?`<div class="city-lbl">In show city</div><ul>${cityStores.map(s=>`<li><strong>${esc(s.n)}</strong>${s.a&&s.a.includes(artist)?' ★':''}${s.w?` — <span class="url">${esc(s.w)}</span>`:''}</li>`).join('')}</ul>`:''}
+      ${otherStores.length?`<div class="city-lbl">Elsewhere in ${esc(state)}</div><ul>${otherStores.map(s=>`<li>${esc(s.n)} <span class="city-name">(${esc(s.c)})</span>${s.a&&s.a.includes(artist)?' ★':''}${s.w?` — <span class="url">${esc(s.w)}</span>`:''}</li>`).join('')}</ul>`:''}
+    </div>`;
+  }
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>${esc(artist)} — Tour 2026 · RVNG Intl.</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#111;background:#fff}
+.cover{padding:40pt 44pt 24pt;border-bottom:4pt solid ${color}}
+.cover h1{font-size:30pt;font-weight:900;letter-spacing:.03em;text-transform:uppercase;color:${color};line-height:1}
+.cover h2{font-size:12pt;font-weight:400;color:#888;margin-top:6pt;margin-bottom:20pt}
+.stats{display:flex;gap:20pt;flex-wrap:wrap}
+.stat{text-align:center;min-width:60pt}
+.stat-n{font-size:20pt;font-weight:900;color:${color};line-height:1}
+.stat-l{font-size:7pt;text-transform:uppercase;letter-spacing:.08em;color:#bbb;margin-top:3pt}
+.body{padding:20pt 44pt 32pt}
+h3{font-size:8pt;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#bbb;margin:22pt 0 7pt;padding-bottom:4pt;border-bottom:1pt solid #e8e8e8}
+table{width:100%;border-collapse:collapse;font-size:8.5pt}
+thead th{background:#111;color:#fff;text-align:left;padding:4pt 6pt;font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+tbody tr{border-bottom:1pt solid #f0f0f0}
+tbody tr:nth-child(even){background:#fafafa}
+tbody tr.past{opacity:.45}
+tbody td{padding:4pt 6pt;vertical-align:top;line-height:1.4}
+.st{font-size:7.5pt;font-weight:700;color:#1a5a9a}
+.legend{font-size:8pt;color:#888;margin-bottom:10pt;font-style:italic}
+.app-state{margin-bottom:14pt;page-break-inside:avoid}
+h4{font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:${color};margin-bottom:4pt}
+.show-ref{font-weight:400;color:#aaa;font-size:8pt;text-transform:none;letter-spacing:0}
+.city-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#ccc;margin:5pt 0 2pt}
+ul{margin:0;padding-left:12pt;list-style:disc}
+li{padding:1pt 0;font-size:8.5pt;line-height:1.4}
+.city-name{color:#999}
+.url{color:#999;font-size:7.5pt}
+@media print{
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .cover{padding:32pt 36pt 20pt}
+  .body{padding:16pt 36pt 24pt}
+  h3{page-break-after:avoid}
+}
+</style></head><body>
+<div class="cover">
+  <h1>${esc(artist)}</h1>
+  <h2>Tour 2026 &nbsp;·&nbsp; RVNG Intl.</h2>
+  <div class="stats">
+    <div class="stat"><div class="stat-n">${rows.length}</div><div class="stat-l">Total Dates</div></div>
+    <div class="stat"><div class="stat-n">${ann}</div><div class="stat-l">Announced</div></div>
+    <div class="stat"><div class="stat-n">${rows.length-ann}</div><div class="stat-l">Pending</div></div>
+    <div class="stat"><div class="stat-n">${ctrs.length}</div><div class="stat-l">Countries</div></div>
+    <div class="stat"><div class="stat-n">${usRows.length}</div><div class="stat-l">US Dates</div></div>
+    <div class="stat"><div class="stat-n">${statesInTour.length}</div><div class="stat-l">US States</div></div>
+    <div class="stat"><div class="stat-n">${totalStores}</div><div class="stat-l">Retail Partners</div></div>
+  </div>
+</div>
+<div class="body">
+  ${mode!=='retail'?`<h3>Tour Dates</h3>
+  <table>
+    <thead><tr><th>Date</th><th>Venue</th><th>City</th><th>State / Country</th><th>Status</th><th>w/</th><th>Notes</th></tr></thead>
+    <tbody>${dateRows}</tbody>
+  </table>`:''}
+  ${appendix?`<h3 style="margin-top:${mode!=='retail'?'30pt':'0'}">
+    ${mode==='retail'?'Confirmed Retail Partners (US Tour States)':'Appendix A — Confirmed Retail Partners (US Tour States)'}
+  </h3>
+  <p class="legend">★ = store confirmed stocking ${esc(artist)} catalog specifically &nbsp;|&nbsp; All other stores carry confirmed RVNG Intl. catalog</p>
+  ${appendix}`:''}
+</div>
+</body></html>`;
+
+  const win=window.open('','_blank','width=960,height=720');
+  if(!win){alert('Allow pop-ups to export PDF.');return;}
+  win.document.write(html);
+  win.document.close();
+  setTimeout(()=>win.print(),600);
+}
+
+// ── Dropdown helpers ──────────────────────────────────────────────────────────
+function toggleDD(id,e){e&&e.stopPropagation();const m=document.getElementById(id);if(!m)return;const open=m.classList.toggle('open');if(open){const close=ev=>{if(!m.contains(ev.target)){m.classList.remove('open');document.removeEventListener('click',close);}};setTimeout(()=>document.addEventListener('click',close),0);}}
+function closeDD(id){const m=document.getElementById(id);if(m)m.classList.remove('open');}
+
+// ── UI actions ────────────────────────────────────────────────────────────────
+function sortBy(col){
+  sortDir=sortCol===col?-sortDir:1;sortCol=col;
+  document.querySelectorAll('thead th').forEach(th=>{th.classList.remove('sorted');const s=th.querySelector('.sa');if(s)s.textContent='↕';});
+  const th=document.querySelector('thead th[data-col="'+col+'"]');
+  if(th){th.classList.add('sorted');th.querySelector('.sa').textContent=sortDir===1?'↑':'↓';}
+  apply();
+}
+
+function switchTab(t){
+  tab=t;
+  document.getElementById('vt').style.display=t==='table'?'block':'none';
+  document.getElementById('vm').style.display=t==='map'?'block':'none';
+  document.getElementById('vs').style.display=t==='stores'?'block':'none';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tab[onclick="switchTab(\''+t+'\')"]').classList.add('active');
+  apply();
+}
+
+function toggleGrouped(){document.body.classList.toggle('grouped');document.getElementById('bg').classList.toggle('on');apply();}
+function toggleCompact(){document.body.classList.toggle('compact');document.getElementById('bc').classList.toggle('on');}
+function toggleInsights(){
+  const el=document.getElementById('insights');
+  const arr=document.getElementById('ins-arrow');
+  el.classList.toggle('collapsed');
+  arr.textContent=el.classList.contains('collapsed')?'▼':'▲';
+}
+
+function resetFilters(){
+  ['search','fa','fc','fs','fst','df','dt'].forEach(id=>{
+    const e=document.getElementById(id);e.tagName==='SELECT'?e.selectedIndex=0:(e.value='');
+  });
+  apply();
+}
+
+// ── Artist detail view ────────────────────────────────────────────────────────
+let activeArtistView=null;
+
+function openArtistView(artist){
+  activeArtistView=artist;
+  // Hide dashboard content
+  ['cards-strip','tabs','insights','controls','vt','vm','vs'].forEach(id=>{
+    const el=document.getElementById(id)||document.querySelector('.'+id);
+    if(el)el.style.display='none';
+  });
+  document.querySelector('.cards-strip').style.display='none';
+  document.querySelector('.tabs').style.display='none';
+  document.querySelector('.insights').style.display='none';
+  document.querySelector('.controls').style.display='none';
+  document.getElementById('vt').style.display='none';
+  document.getElementById('vm').style.display='none';
+  document.getElementById('vs').style.display='none';
+  const va=document.getElementById('va');
+  va.style.display='block';
+  renderArtistView(artist);
+  va.scrollIntoView({block:'start'});
+}
+
+function closeArtistView(){
+  activeArtistView=null;
+  document.getElementById('va').style.display='none';
+  document.querySelector('.cards-strip').style.display='';
+  document.querySelector('.tabs').style.display='';
+  document.querySelector('.insights').style.display='';
+  document.querySelector('.controls').style.display='';
+  // restore whichever tab was active
+  if(tab==='table')document.getElementById('vt').style.display='block';
+  else if(tab==='map')document.getElementById('vm').style.display='block';
+  else document.getElementById('vs').style.display='block';
+}
+
+function renderArtistView(artist){
+  const color=aC(artist);
+  const rows=ALL.filter(r=>r.artist===artist)
+    .sort((a,b)=>(pdate(a.date)?.getTime()??0)-(pdate(b.date)?.getTime()??0));
+  const usRows=rows.filter(r=>r.country==='United States');
+  const intlRows=rows.filter(r=>r.country!=='United States');
+  const ann=rows.filter(r=>r.status==='Announced').length;
+  const usStates=[...new Set(usRows.map(r=>r.state).filter(Boolean))];
+  const totalRetailStores=usStates.reduce((t,s)=>(t+(US_RETAIL[s]?.length||0)),0);
+
+  let html=`<div class="av-topbar">
+    <button class="av-back" onclick="closeArtistView()">← Dashboard</button>
+    <span class="dot" style="background:${color};width:10px;height:10px"></span>
+    <span class="av-artist-name" style="color:${color}">${esc(artist)}</span>
+    <span class="av-meta">${rows.length} dates · ${ann} announced · ${usRows.length} US shows · ${totalRetailStores} retail partner stores</span>
+  <div class="btn-group" style="margin-left:8px">
+    <button class="cb export" onclick="exportArtistPDF('${artist.replace(/'/g,"\\'")}','full')">Export PDF</button>
+    <button class="dd-toggle export" onclick="toggleDD('dd-av-pdf',event)">▾</button>
+    <div class="dd-menu" id="dd-av-pdf">
+      <button onclick="exportArtistPDF('${artist.replace(/'/g,"\\'")}','full');closeDD('dd-av-pdf')">Full overview (dates + retail)</button>
+      <button onclick="exportArtistPDF('${artist.replace(/'/g,"\\'")}','retail');closeDD('dd-av-pdf')">Retail locations only</button>
+    </div>
+  </div>
+  </div>
+  <div class="av-body">`;
+
+  // US dates with retail
+  if(usRows.length){
+    html+=`<div class="av-section-hdr">US Dates & Nearby Retail</div>`;
+    let nextFound=false;
+    for(const r of usRows){
+      const d=pdate(r.date);
+      const past=d&&d<TODAY;
+      const isNext=!past&&!nextFound&&d&&d>=TODAY;
+      if(isNext)nextFound=true;
+      const cls=past?'past-c':isNext?'next-c':'';
+      const loc=`${esc(r.city)}, ${esc(r.state)}`;
+      const retailBlock=stateRetailBlock(r.state,r.city,artist,false);
+      html+=`<div class="av-date-card ${cls}">
+        <div class="av-date-hdr">
+          <span class="av-date-d">${esc(displayDate(r.date).replace(/\|/g,' – '))}</span>
+          <span class="av-date-v">${venueHtml(r.venue,r.city,'')}</span>
+          <span class="av-date-loc">${loc}</span>
+          ${r.additionalArtist?`<span style="font-size:11px;color:#aaa">w/ ${esc(r.additionalArtist)}</span>`:''}
+          <span class="av-date-status">${statusBadge(r.status)}</span>
+        </div>
+        ${retailBlock||`<div class="av-retail-block"><div class="av-retail-none">No confirmed retail partners on file for ${esc(r.state)} yet.</div></div>`}
+      </div>`;
+    }
+  }
+
+  // International dates
+  if(intlRows.length){
+    html+=`<div class="av-section-hdr" style="margin-top:32px">International Dates</div>`;
+    for(const r of intlRows){
+      const d=pdate(r.date);
+      const past=d&&d<TODAY;
+      const loc=[r.city,r.country].filter(Boolean).join(', ');
+      html+=`<div class="av-intl-row" style="${past?'opacity:.4':''}">
+        <span class="av-intl-date">${esc(displayDate(r.date).replace(/\|/g,' – '))}</span>
+        <span class="av-intl-venue">${venueHtml(r.venue,r.city,'')}</span>
+        <span class="av-intl-loc">${esc(loc)}</span>
+        <span style="margin-left:8px">${statusBadge(r.status)}</span>
+      </div>`;
+    }
+  }
+
+  html+='</div>';
+  document.getElementById('va').innerHTML=html;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+['search','fa','fc','fs','fst','df','dt'].forEach(id=>document.getElementById(id)?.addEventListener('input',apply));
+
+async function init(){
+  const el=document.getElementById('loading');
+  el.style.display='flex';
+  try{
+    const [tr,vr]=await Promise.all([fetch(TOUR_CSV_URL),fetch(VENUE_CSV_URL)]);
+    const [tt,vt]=await Promise.all([tr.text(),vr.text()]);
+    // Build venue URL lookup from Venue Directory sheet
+    for(const row of parseCSVText(vt)){
+      if(!row[0]||row[0]==='Venue Name') continue;
+      VENUE_URLS[row[0].trim()+'|'+row[1].trim()]=row[3].trim();
+    }
+    ALL=parseRows(parseCSVText(tt));
+  } catch(e){
+    el.innerHTML='<div style="text-align:center"><p style="font-size:1.2rem">⚠ Could not load tour data.</p><p style="font-size:.85rem;opacity:.7">Check your internet connection and refresh.</p></div>';
+    return;
+  }
+  el.style.display='none';
+  initHeaderStats();
+  document.body.classList.add('grouped');
+  renderArtistCards();
+  renderSnapshot();
+  renderRecent('added');
+  populateFilters();
+  sortBy('date');
+}
+init();
+</script>
+</body>
+</html>
