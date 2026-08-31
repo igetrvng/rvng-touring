@@ -464,8 +464,8 @@ a.vlink:hover{text-decoration-color:currentColor}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const TOUR_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZspB0PhLF0L371p8zo4dcd0pLehsJfmp2s-vO-wjvUHhKhH4XgQgj-LZbcAZ4t8gHU_3Dqt9pRXWC/pub?gid=0&single=true&output=csv';
-const VENUE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHmXEznWMPY6BQPKUpiTotKGmfKhn488O5Sn19WRGMYpECR2TjgwyLv0lzEFaHAw/pub?gid=1887170134&single=true&output=csv';
-const STORE_REL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHmXEznWMPY6BQPKUpiTotKGmfKhn488O5Sn19WRGMYpECR2TjgwyLv0lzEFaHAw/pub?gid=1710577086&single=true&output=csv';
+const VENUE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZspB0PhLF0L371p8zo4dcd0pLehsJfmp2s-vO-wjvUHhKhH4XgQgj-LZbcAZ4t8gHU_3Dqt9pRXWC/pub?gid=127404757&single=true&output=csv';
+const STORE_REL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZspB0PhLF0L371p8zo4dcd0pLehsJfmp2s-vO-wjvUHhKhH4XgQgj-LZbcAZ4t8gHU_3Dqt9pRXWC/pub?gid=1906058430&single=true&output=csv';
 
 const ARTISTS={
   'Lucrecia Dalt':{color:'#e05c4a',bg:'#fdf1f0'},
@@ -595,27 +595,59 @@ function parseCSVText(text){
   return rows;
 }
 
-// Sheet column order: Label(0) Artist(1) Date(2) Country(3) State(4) City(5) Venue(6) Announced(7) AdditionalArtist(8) Notes(9) DateCreated(10) DateModified(11)
+// Columns are matched by HEADER NAME, not position, so the sheet can add or
+// reorder columns (e.g. a "Sublabel" column) without breaking this parser.
+// Any rows above the "Label" header row (e.g. a "DO NOT OVERWRITE" hint row)
+// are skipped automatically.
+function buildTourColMap(headerRow){
+  const idx={};
+  (headerRow||[]).forEach((h,i)=>{
+    const k=(h||'').trim().toLowerCase();
+    if(k && !(k in idx)) idx[k]=i;
+  });
+  const pick=(...names)=>{ for(const n of names){ if(n in idx) return idx[n]; } return -1; };
+  const starts=p=>{ for(const k in idx){ if(k.startsWith(p)) return idx[k]; } return -1; };
+  return {
+    label:pick('label'),
+    artist:pick('artist'),
+    date:pick('date'),               // exact \u2014 'date created'/'date modified' won't collide
+    country:pick('country'),
+    state:pick('state'),
+    city:pick('city'),
+    venue:pick('venue'),
+    announced:pick('announced'),
+    additionalArtist:pick('additional artist','additionalartist','additional artist(s)'),
+    notes:starts('notes'),           // header may carry extra help text
+    dateCreated:pick('date created','datecreated','created'),
+    dateModified:pick('date modified','datemodified','modified'),
+  };
+}
 function parseRows(csvRows){
   const rows=[],seen=new Set();
-  for(const c of csvRows){
-    if(!c[0]||c[0]==='Label') continue; // skip header/empty
-    const dateRaw=(c[2]||'').replace(/ \/ /g,'\n').trim();
-    const announced=(c[7]||'').trim();
+  let hi=csvRows.findIndex(r=>r.some(c=>(c||'').trim().toLowerCase()==='label'));
+  if(hi<0) hi=0; // no header found \u2014 treat everything as data (legacy fallback)
+  const col=buildTourColMap(csvRows[hi]);
+  const get=(c,i)=> i>=0 ? (c[i]||'').trim() : '';
+  for(let ri=hi+1; ri<csvRows.length; ri++){
+    const c=csvRows[ri];
+    const label=get(c,col.label);
+    if(!label) continue; // skip blank rows (matches old !c[0] guard)
+    const dateRaw=get(c,col.date).replace(/ \/ /g,'\n').trim();
+    const announced=get(c,col.announced);
     const o={
-      label:(c[0]||'').trim(),
-      artist:(c[1]||'').trim(),
+      label,
+      artist:get(c,col.artist),
       date:dateRaw,
-      country:(c[3]||'').trim(),
-      state:(c[4]||'').trim(),
-      city:(c[5]||'').trim(),
-      venue:(c[6]||'').trim(),
+      country:get(c,col.country),
+      state:get(c,col.state),
+      city:get(c,col.city),
+      venue:get(c,col.venue),
       announced,
       status:announced==='\u2705'?'Announced':'Pending',
-      additionalArtist:(c[8]||'').trim(),
-      notes:(c[9]||'').trim(),
-      dateCreated:(c[10]||'').trim(),
-      dateModified:(c[11]||'').trim(),
+      additionalArtist:get(c,col.additionalArtist),
+      notes:get(c,col.notes),
+      dateCreated:get(c,col.dateCreated),
+      dateModified:get(c,col.dateModified),
     };
     const k=[o.date,o.artist,o.city,o.venue].join('|');
     if(seen.has(k))continue;
