@@ -633,6 +633,8 @@ function parseRows(csvRows){
     const label=get(c,col.label);
     if(!label) continue; // skip blank rows (matches old !c[0] guard)
     const dateRaw=get(c,col.date).replace(/ \/ /g,'\n').trim();
+    // skip half-filled stub rows: a Label (auto-filled) but no artist AND no date
+    if(!get(c,col.artist) && !dateRaw) continue;
     const announced=get(c,col.announced);
     const o={
       label,
